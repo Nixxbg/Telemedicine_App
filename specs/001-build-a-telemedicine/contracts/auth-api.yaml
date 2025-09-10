@@ -1,0 +1,519 @@
+openapi: 3.0.3
+info:
+  title: Telemedicine Authentication API
+  description: Authentication and user management endpoints for the telemedicine application
+  version: 1.0.0
+  contact:
+    name: Telemedicine API
+    email: api@telemedicine.com
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.telemedicine.com/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/register/patient:
+    post:
+      summary: Register a new patient
+      description: Creates a new patient account with email and username authentication
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientRegistrationRequest'
+            examples:
+              valid_registration:
+                summary: Valid patient registration
+                value:
+                  email: "john.doe@example.com"
+                  username: "johndoe123"
+                  password: "SecurePass123!"
+                  first_name: "John"
+                  last_name: "Doe"
+                  date_of_birth: "1990-05-15"
+                  phone_number: "+1234567890"
+      responses:
+        '201':
+          description: Patient successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '400':
+          description: Invalid registration data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                email_taken:
+                  summary: Email already exists
+                  value:
+                    error: "validation_error"
+                    message: "Email address already registered"
+                    details:
+                      field: "email"
+                      code: "already_exists"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /auth/register/doctor:
+    post:
+      summary: Register a new doctor
+      description: Creates a new doctor account with email and pre-assigned doctor ID
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorRegistrationRequest'
+            examples:
+              valid_registration:
+                summary: Valid doctor registration
+                value:
+                  email: "dr.smith@example.com"
+                  doctor_id: "DOC001"
+                  password: "SecurePass123!"
+                  first_name: "Sarah"
+                  last_name: "Smith"
+                  specializations: ["Internal Medicine", "Cardiology"]
+      responses:
+        '201':
+          description: Doctor successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '400':
+          description: Invalid registration data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /auth/login:
+    post:
+      summary: Authenticate user
+      description: Login for both patients and doctors using email/password
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              patient_login:
+                summary: Patient login
+                value:
+                  email: "john.doe@example.com"
+                  password: "SecurePass123!"
+              doctor_login:
+                summary: Doctor login
+                value:
+                  email: "dr.smith@example.com"
+                  password: "SecurePass123!"
+      responses:
+        '200':
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_credentials:
+                  summary: Wrong email or password
+                  value:
+                    error: "authentication_error"
+                    message: "Invalid email or password"
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token successfully refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidate current access and refresh tokens
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      summary: Get current user profile
+      description: Retrieve the authenticated user's profile information
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PatientProfile'
+                  - $ref: '#/components/schemas/DoctorProfile'
+              examples:
+                patient_profile:
+                  summary: Patient profile
+                  value:
+                    id: "123e4567-e89b-12d3-a456-426614174000"
+                    email: "john.doe@example.com"
+                    user_type: "patient"
+                    username: "johndoe123"
+                    first_name: "John"
+                    last_name: "Doe"
+                    profile_completed: true
+                doctor_profile:
+                  summary: Doctor profile
+                  value:
+                    id: "123e4567-e89b-12d3-a456-426614174001"
+                    email: "dr.smith@example.com"
+                    user_type: "doctor"
+                    doctor_id: "DOC001"
+                    first_name: "Sarah"
+                    last_name: "Smith"
+                    specializations: ["Internal Medicine", "Cardiology"]
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PatientRegistrationRequest:
+      type: object
+      required:
+        - email
+        - username
+        - password
+        - first_name
+        - last_name
+        - date_of_birth
+      properties:
+        email:
+          type: string
+          format: email
+          description: Unique email address
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_]+$'
+          description: Unique username for patient
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Strong password
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        date_of_birth:
+          type: string
+          format: date
+          description: Birth date in YYYY-MM-DD format
+        phone_number:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: Optional phone number in international format
+        emergency_contact_name:
+          type: string
+          maxLength: 200
+          description: Emergency contact person name
+        emergency_contact_phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: Emergency contact phone number
+
+    DoctorRegistrationRequest:
+      type: object
+      required:
+        - email
+        - doctor_id
+        - password
+        - first_name
+        - last_name
+        - specializations
+      properties:
+        email:
+          type: string
+          format: email
+          description: Unique email address
+        doctor_id:
+          type: string
+          minLength: 3
+          maxLength: 20
+          pattern: '^[A-Z0-9]+$'
+          description: Pre-assigned unique doctor identifier
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: Strong password
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        specializations:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: List of medical specialties
+        license_number:
+          type: string
+          maxLength: 50
+          description: Medical license number
+        bio:
+          type: string
+          maxLength: 2000
+          description: Professional biography
+        years_experience:
+          type: integer
+          minimum: 0
+          description: Years of medical practice
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Valid refresh token
+
+    AuthenticationResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (15 minute expiry)
+        refresh_token:
+          type: string
+          description: Refresh token (7 day expiry)
+        token_type:
+          type: string
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Access token expiry in seconds
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/PatientProfile'
+            - $ref: '#/components/schemas/DoctorProfile'
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: New JWT access token
+        token_type:
+          type: string
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Access token expiry in seconds
+
+    PatientProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        user_type:
+          type: string
+          example: "patient"
+        username:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+        phone_number:
+          type: string
+        profile_completed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    DoctorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        user_type:
+          type: string
+          example: "doctor"
+        doctor_id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        specializations:
+          type: array
+          items:
+            type: string
+        license_number:
+          type: string
+        bio:
+          type: string
+        years_experience:
+          type: integer
+        is_accepting_patients:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "validation_error"
+        message:
+          type: string
+          example: "Request validation failed"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field that failed validation
+              message:
+                type: string
+                description: Validation error message
+              code:
+                type: string
+                description: Validation error code
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message

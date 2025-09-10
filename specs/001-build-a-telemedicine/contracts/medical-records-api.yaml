@@ -1,0 +1,608 @@
+openapi: 3.0.3
+info:
+  title: Telemedicine Medical Records API
+  description: Medical records management with versioning and questionnaire support
+  version: 1.0.0
+  contact:
+    name: Telemedicine API
+    email: api@telemedicine.com
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.telemedicine.com/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /medical-records:
+    get:
+      summary: Get patient's medical records
+      description: Retrieve all medical records for the authenticated patient
+      tags:
+        - Medical Records
+      parameters:
+        - name: record_type
+          in: query
+          description: Filter by record type
+          schema:
+            type: string
+            enum: [medical_history, medication, allergy, procedure]
+        - name: limit
+          in: query
+          description: Maximum number of records to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of records to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Medical records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - can only access own records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create new medical record
+      description: Add a new medical record for the authenticated patient
+      tags:
+        - Medical Records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMedicalRecordRequest'
+            examples:
+              medication_record:
+                summary: New medication record
+                value:
+                  record_type: "medication"
+                  title: "Daily Blood Pressure Medication"
+                  data:
+                    medication_name: "Lisinopril"
+                    dosage: "10mg"
+                    frequency: "Once daily"
+                    start_date: "2025-01-01"
+                    prescribing_doctor: "Dr. Smith"
+                    notes: "Take with food"
+              allergy_record:
+                summary: New allergy record
+                value:
+                  record_type: "allergy"
+                  title: "Penicillin Allergy"
+                  data:
+                    allergen: "Penicillin"
+                    reaction_type: "Severe rash"
+                    severity: "High"
+                    date_discovered: "2020-03-15"
+      responses:
+        '201':
+          description: Medical record created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecord'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /medical-records/{record_id}:
+    get:
+      summary: Get specific medical record
+      description: Retrieve a specific medical record with all versions
+      tags:
+        - Medical Records
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          description: Medical record UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Medical record retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordDetail'
+        '404':
+          description: Medical record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update medical record
+      description: Update existing medical record (creates new version)
+      tags:
+        - Medical Records
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          description: Medical record UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMedicalRecordRequest'
+      responses:
+        '200':
+          description: Medical record updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecord'
+        '404':
+          description: Medical record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /medical-records/{record_id}/versions:
+    get:
+      summary: Get medical record versions
+      description: Retrieve all versions of a specific medical record
+      tags:
+        - Medical Records
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          description: Medical record UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Medical record versions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecordVersionsResponse'
+        '404':
+          description: Medical record not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /questionnaire:
+    get:
+      summary: Get questionnaire progress
+      description: Retrieve current questionnaire completion status
+      tags:
+        - Questionnaire
+      responses:
+        '200':
+          description: Questionnaire progress retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionnaireProgress'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update questionnaire progress
+      description: Save progress on medical history questionnaire
+      tags:
+        - Questionnaire
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateQuestionnaireRequest'
+            examples:
+              partial_update:
+                summary: Save partial questionnaire progress
+                value:
+                  family_history_completed: true
+                  current_conditions_completed: true
+                  medications_completed: false
+                  family_history_data:
+                    diabetes: "Father diagnosed at age 55"
+                    heart_disease: "Mother has hypertension"
+                  current_conditions_data:
+                    conditions: ["Hypertension", "Type 2 Diabetes"]
+      responses:
+        '200':
+          description: Questionnaire progress updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionnaireProgress'
+        '400':
+          description: Invalid questionnaire data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /patients/{patient_id}/medical-records:
+    get:
+      summary: Get patient medical records (Doctor access)
+      description: Retrieve medical records for a specific patient (doctors only)
+      tags:
+        - Medical Records
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Patient UUID
+          schema:
+            type: string
+            format: uuid
+        - name: include_versions
+          in: query
+          description: Include all versions in response
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Patient medical records retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientMedicalRecordsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - doctors only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    MedicalRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique record identifier
+        patient_id:
+          type: string
+          format: uuid
+          description: Owner patient ID
+        record_type:
+          type: string
+          enum: [medical_history, medication, allergy, procedure]
+          description: Type of medical record
+        title:
+          type: string
+          description: Brief description of the record
+        current_version:
+          type: integer
+          description: Latest version number
+        is_active:
+          type: boolean
+          description: Whether record is active
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        current_data:
+          type: object
+          description: Current version data
+
+    MedicalRecordDetail:
+      allOf:
+        - $ref: '#/components/schemas/MedicalRecord'
+        - type: object
+          properties:
+            versions:
+              type: array
+              items:
+                $ref: '#/components/schemas/MedicalRecordVersion'
+              description: All versions of this record
+
+    MedicalRecordVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Version identifier
+        medical_record_id:
+          type: string
+          format: uuid
+          description: Parent record ID
+        version_number:
+          type: integer
+          description: Sequential version number
+        data:
+          type: object
+          description: Complete record data snapshot
+        change_reason:
+          type: string
+          description: Reason for the update
+        changed_by_user_id:
+          type: string
+          format: uuid
+          description: User who made the change
+        changed_by_user_type:
+          type: string
+          enum: [patient, doctor]
+          description: Role of user who made change
+        created_at:
+          type: string
+          format: date-time
+          description: Version creation timestamp
+
+    CreateMedicalRecordRequest:
+      type: object
+      required:
+        - record_type
+        - title
+        - data
+      properties:
+        record_type:
+          type: string
+          enum: [medical_history, medication, allergy, procedure]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        data:
+          type: object
+          description: Record-specific data structure
+
+    UpdateMedicalRecordRequest:
+      type: object
+      required:
+        - title
+        - data
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        data:
+          type: object
+          description: Updated record data
+        change_reason:
+          type: string
+          maxLength: 500
+          description: Reason for the update
+
+    MedicalRecordsResponse:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicalRecord'
+        total_count:
+          type: integer
+          description: Total number of records
+        offset:
+          type: integer
+          description: Current offset
+        limit:
+          type: integer
+          description: Current limit
+
+    MedicalRecordVersionsResponse:
+      type: object
+      properties:
+        record_id:
+          type: string
+          format: uuid
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicalRecordVersion'
+        total_versions:
+          type: integer
+
+    PatientMedicalRecordsResponse:
+      type: object
+      properties:
+        patient_id:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+          description: Patient's full name
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicalRecordDetail'
+        questionnaire_progress:
+          $ref: '#/components/schemas/QuestionnaireProgress'
+        last_updated:
+          type: string
+          format: date-time
+
+    QuestionnaireProgress:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patient_id:
+          type: string
+          format: uuid
+        family_history_completed:
+          type: boolean
+        current_conditions_completed:
+          type: boolean
+        past_procedures_completed:
+          type: boolean
+        medications_completed:
+          type: boolean
+        allergies_completed:
+          type: boolean
+        drug_resistance_completed:
+          type: boolean
+        personal_info_completed:
+          type: boolean
+        emergency_contacts_completed:
+          type: boolean
+        overall_completion_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        last_updated:
+          type: string
+          format: date-time
+        sections_data:
+          type: object
+          description: Saved questionnaire section data
+
+    UpdateQuestionnaireRequest:
+      type: object
+      properties:
+        family_history_completed:
+          type: boolean
+        current_conditions_completed:
+          type: boolean
+        past_procedures_completed:
+          type: boolean
+        medications_completed:
+          type: boolean
+        allergies_completed:
+          type: boolean
+        drug_resistance_completed:
+          type: boolean
+        personal_info_completed:
+          type: boolean
+        emergency_contacts_completed:
+          type: boolean
+        family_history_data:
+          type: object
+          description: Family medical history data
+        current_conditions_data:
+          type: object
+          description: Current medical conditions data
+        past_procedures_data:
+          type: object
+          description: Past procedures data
+        medications_data:
+          type: object
+          description: Current medications data
+        allergies_data:
+          type: object
+          description: Known allergies data
+        drug_resistance_data:
+          type: object
+          description: Drug resistance data
+        personal_info_data:
+          type: object
+          description: Personal information data
+        emergency_contacts_data:
+          type: object
+          description: Emergency contact data
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context

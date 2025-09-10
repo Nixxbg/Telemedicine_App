@@ -1,0 +1,759 @@
+openapi: 3.0.3
+info:
+  title: Telemedicine Appointments API
+  description: Appointment booking and management system for patients and doctors
+  version: 1.0.0
+  contact:
+    name: Telemedicine API
+    email: api@telemedicine.com
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.telemedicine.com/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /appointments:
+    get:
+      summary: Get user's appointments
+      description: Retrieve appointments for the authenticated user (patient or doctor)
+      tags:
+        - Appointments
+      parameters:
+        - name: status
+          in: query
+          description: Filter by appointment status
+          schema:
+            type: string
+            enum: [scheduled, in_progress, completed, cancelled]
+        - name: from_date
+          in: query
+          description: Filter appointments from this date
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter appointments until this date
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          description: Maximum number of appointments to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of appointments to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Appointments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Book new appointment
+      description: Book an appointment with a doctor (patients only)
+      tags:
+        - Appointments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentRequest'
+            examples:
+              consultation:
+                summary: Regular consultation booking
+                value:
+                  doctor_id: "123e4567-e89b-12d3-a456-426614174001"
+                  scheduled_start: "2025-09-15T14:00:00Z"
+                  scheduled_end: "2025-09-15T14:30:00Z"
+                  appointment_type: "consultation"
+                  reason_for_visit: "Regular check-up and blood pressure monitoring"
+              follow_up:
+                summary: Follow-up appointment
+                value:
+                  doctor_id: "123e4567-e89b-12d3-a456-426614174001"
+                  scheduled_start: "2025-09-20T10:00:00Z"
+                  scheduled_end: "2025-09-20T10:30:00Z"
+                  appointment_type: "follow_up"
+                  reason_for_visit: "Follow-up on medication effectiveness"
+      responses:
+        '201':
+          description: Appointment booked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Invalid appointment data or scheduling conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                time_conflict:
+                  summary: Doctor not available at requested time
+                  value:
+                    error: "scheduling_conflict"
+                    message: "Doctor is not available at the requested time"
+                    details:
+                      available_slots: ["2025-09-15T15:00:00Z", "2025-09-15T16:00:00Z"]
+                max_appointments:
+                  summary: Patient has too many future appointments
+                  value:
+                    error: "appointment_limit"
+                    message: "Patient has reached maximum number of future appointments (3)"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - patients only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /appointments/{appointment_id}:
+    get:
+      summary: Get specific appointment
+      description: Retrieve details of a specific appointment
+      tags:
+        - Appointments
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          description: Appointment UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Appointment retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentDetail'
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update appointment
+      description: Update appointment details or status
+      tags:
+        - Appointments
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          description: Appointment UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppointmentRequest'
+            examples:
+              start_appointment:
+                summary: Start appointment (doctor action)
+                value:
+                  status: "in_progress"
+              complete_appointment:
+                summary: Complete appointment (doctor action)
+                value:
+                  status: "completed"
+              cancel_appointment:
+                summary: Cancel appointment
+                value:
+                  status: "cancelled"
+                  cancellation_reason: "Patient unable to attend"
+      responses:
+        '200':
+          description: Appointment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Invalid status transition or update data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /doctors:
+    get:
+      summary: Get available doctors
+      description: Retrieve list of doctors accepting patients
+      tags:
+        - Doctors
+      parameters:
+        - name: specialization
+          in: query
+          description: Filter by medical specialization
+          schema:
+            type: string
+        - name: is_accepting_patients
+          in: query
+          description: Filter by patient acceptance status
+          schema:
+            type: boolean
+            default: true
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Doctors retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /doctors/{doctor_id}/availability:
+    get:
+      summary: Get doctor availability
+      description: Retrieve available appointment slots for a specific doctor
+      tags:
+        - Doctors
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          description: Doctor UUID
+          schema:
+            type: string
+            format: uuid
+        - name: from_date
+          in: query
+          required: true
+          description: Start date for availability search
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          required: true
+          description: End date for availability search
+          schema:
+            type: string
+            format: date
+        - name: appointment_duration
+          in: query
+          description: Desired appointment duration in minutes
+          schema:
+            type: integer
+            minimum: 15
+            maximum: 120
+            default: 30
+      responses:
+        '200':
+          description: Doctor availability retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailabilityResponse'
+        '404':
+          description: Doctor not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /doctors/availability:
+    get:
+      summary: Get current doctor's availability settings
+      description: Retrieve availability settings for the authenticated doctor
+      tags:
+        - Doctors
+      responses:
+        '200':
+          description: Availability settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailabilitySettingsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - doctors only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update doctor availability
+      description: Update availability settings for the authenticated doctor
+      tags:
+        - Doctors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDoctorAvailabilityRequest'
+            examples:
+              weekday_schedule:
+                summary: Set weekday availability
+                value:
+                  availability:
+                    - day_of_week: 1
+                      start_time: "09:00"
+                      end_time: "17:00"
+                      appointment_duration_minutes: 30
+                      buffer_minutes: 15
+                    - day_of_week: 2
+                      start_time: "09:00"
+                      end_time: "17:00"
+                      appointment_duration_minutes: 30
+                      buffer_minutes: 15
+      responses:
+        '200':
+          description: Availability updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAvailabilitySettingsResponse'
+        '400':
+          description: Invalid availability data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - doctors only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique appointment identifier
+        patient_id:
+          type: string
+          format: uuid
+          description: Patient UUID
+        doctor_id:
+          type: string
+          format: uuid
+          description: Doctor UUID
+        scheduled_start:
+          type: string
+          format: date-time
+          description: Appointment start time
+        scheduled_end:
+          type: string
+          format: date-time
+          description: Appointment end time
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+          description: Current appointment status
+        appointment_type:
+          type: string
+          enum: [consultation, follow_up, urgent]
+          description: Type of appointment
+        reason_for_visit:
+          type: string
+          description: Patient-provided reason for the appointment
+        preparation_notes:
+          type: string
+          description: Pre-appointment instructions
+        cost:
+          type: number
+          format: decimal
+          description: Appointment cost (0.00 for v1)
+        cancellation_reason:
+          type: string
+          description: Reason for cancellation if applicable
+        created_at:
+          type: string
+          format: date-time
+          description: Booking timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    AppointmentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Appointment'
+        - type: object
+          properties:
+            patient:
+              $ref: '#/components/schemas/PatientSummary'
+            doctor:
+              $ref: '#/components/schemas/DoctorSummary'
+            messages_count:
+              type: integer
+              description: Number of messages in this appointment
+            has_consultation_notes:
+              type: boolean
+              description: Whether consultation notes exist
+
+    CreateAppointmentRequest:
+      type: object
+      required:
+        - doctor_id
+        - scheduled_start
+        - scheduled_end
+        - appointment_type
+      properties:
+        doctor_id:
+          type: string
+          format: uuid
+          description: Doctor to book appointment with
+        scheduled_start:
+          type: string
+          format: date-time
+          description: Preferred start time
+        scheduled_end:
+          type: string
+          format: date-time
+          description: Preferred end time
+        appointment_type:
+          type: string
+          enum: [consultation, follow_up, urgent]
+        reason_for_visit:
+          type: string
+          maxLength: 1000
+          description: Reason for the appointment
+
+    UpdateAppointmentRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [in_progress, completed, cancelled]
+          description: New appointment status
+        cancellation_reason:
+          type: string
+          maxLength: 500
+          description: Reason for cancellation
+        preparation_notes:
+          type: string
+          maxLength: 1000
+          description: Pre-appointment instructions (doctors only)
+
+    AppointmentsResponse:
+      type: object
+      properties:
+        appointments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentDetail'
+        total_count:
+          type: integer
+          description: Total number of appointments
+        offset:
+          type: integer
+          description: Current offset
+        limit:
+          type: integer
+          description: Current limit
+
+    DoctorSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        doctor_id:
+          type: string
+          description: Pre-assigned doctor identifier
+        first_name:
+          type: string
+        last_name:
+          type: string
+        specializations:
+          type: array
+          items:
+            type: string
+        years_experience:
+          type: integer
+        is_accepting_patients:
+          type: boolean
+
+    PatientSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        date_of_birth:
+          type: string
+          format: date
+
+    DoctorsResponse:
+      type: object
+      properties:
+        doctors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorSummary'
+        total_count:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    DoctorAvailabilitySlot:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+          description: Available slot start time
+        end_time:
+          type: string
+          format: date-time
+          description: Available slot end time
+        is_available:
+          type: boolean
+          description: Whether this slot is available for booking
+
+    DoctorAvailabilityResponse:
+      type: object
+      properties:
+        doctor_id:
+          type: string
+          format: uuid
+        doctor_name:
+          type: string
+        from_date:
+          type: string
+          format: date
+        to_date:
+          type: string
+          format: date
+        available_slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorAvailabilitySlot'
+        appointment_duration_minutes:
+          type: integer
+
+    DoctorAvailabilitySetting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        day_of_week:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: Day of week (0=Monday to 6=Sunday)
+        start_time:
+          type: string
+          format: time
+          description: Available start time (HH:MM format)
+        end_time:
+          type: string
+          format: time
+          description: Available end time (HH:MM format)
+        appointment_duration_minutes:
+          type: integer
+          minimum: 15
+          maximum: 120
+        buffer_minutes:
+          type: integer
+          minimum: 0
+          maximum: 60
+        is_active:
+          type: boolean
+        effective_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+
+    DoctorAvailabilitySettingsResponse:
+      type: object
+      properties:
+        doctor_id:
+          type: string
+          format: uuid
+        time_zone:
+          type: string
+          description: Doctor's time zone
+        availability:
+          type: array
+          items:
+            $ref: '#/components/schemas/DoctorAvailabilitySetting'
+
+    UpdateDoctorAvailabilityRequest:
+      type: object
+      required:
+        - availability
+      properties:
+        time_zone:
+          type: string
+          description: Doctor's time zone (IANA format)
+        availability:
+          type: array
+          items:
+            type: object
+            required:
+              - day_of_week
+              - start_time
+              - end_time
+            properties:
+              day_of_week:
+                type: integer
+                minimum: 0
+                maximum: 6
+              start_time:
+                type: string
+                format: time
+              end_time:
+                type: string
+                format: time
+              appointment_duration_minutes:
+                type: integer
+                minimum: 15
+                maximum: 120
+                default: 30
+              buffer_minutes:
+                type: integer
+                minimum: 0
+                maximum: 60
+                default: 15
+              is_active:
+                type: boolean
+                default: true
+              effective_date:
+                type: string
+                format: date
+              expiry_date:
+                type: string
+                format: date
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
