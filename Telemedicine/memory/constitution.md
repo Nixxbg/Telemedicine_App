@@ -1,50 +1,81 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Telemedicine Application Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Library-First Architecture
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Every feature starts as a standalone library within the modular monolith architecture. Libraries must be self-contained, independently testable, and documented. Clear purpose required - no organizational-only libraries. Each service module (auth_service, medical_records, appointments, messaging, notifications) functions as an independent library with well-defined interfaces.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. CLI Interface
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Every library exposes functionality via CLI commands for development and operational tasks. Text in/out protocol: stdin/args → stdout, errors → stderr. Support both JSON and human-readable formats. Each module includes management commands with --help/--version/--format options for database operations, data migrations, and administrative tasks.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Test-First Development (NON-NEGOTIABLE)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+TDD mandatory: Tests written → User approved → Tests fail → Then implement. Red-Green-Refactor cycle strictly enforced. Order: Contract→Integration→E2E→Unit tests strictly followed. Real dependencies used (actual PostgreSQL for integration tests). FORBIDDEN: Implementation before test, skipping RED phase.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Medical Data Integrity
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+All medical data operations must maintain immutable audit trails. Versioned medical records create new versions on updates while preserving complete history. Patient-entered data cannot be modified by doctors - only consultation notes can be added. Data retention respects user preferences while maintaining minimum 8-week requirement for medical continuity.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Security & Privacy First
+
+HIPAA-compliant data handling patterns mandatory. JWT authentication with role-based access control (patients access own data, doctors access assigned patients only). All medical data access logged with user attribution. Encrypted data transmission and storage. Input validation on all medical data with Pydantic/Zod schemas.
+
+### VI. Observability & Audit
+
+Structured JSON logging with correlation IDs for request tracing. All medical record changes logged with user attribution and timestamps. Frontend errors sent to backend logging service. Performance metrics collection for API response times and database queries. Comprehensive error context with request IDs and user context.
+
+### VII. Versioning & Breaking Changes
+
+MAJOR.MINOR.BUILD format with automated BUILD increments on every change. API versioning strategy for future compatibility. Database migrations with validation and rollback procedures. Breaking changes require parallel support and migration plan. All changes maintain backward compatibility within major versions.
+
+## Medical Domain Requirements
+
+### Data Model Standards
+
+SQLAlchemy models with comprehensive type hints and relationships. Pydantic schemas for API serialization with medical-specific validation. Versioned entities maintain chronological access patterns. Foreign key constraints enforce referential integrity for patient-doctor relationships.
+
+### Authentication Patterns
+
+Dual authentication flows: patients use email + username, doctors use email + pre-assigned doctor ID. JWT tokens with 15-minute access tokens and 7-day refresh tokens. Session invalidation on role changes. Password hashing with bcrypt minimum 12 rounds.
+
+### API Design Consistency
+
+RESTful endpoints following OpenAPI 3.0 specifications. Standard HTTP status codes with consistent error response format. Pagination for large datasets with offset/limit patterns. WebSocket endpoints for real-time messaging between patients and doctors.
+
+## Technology Standards
+
+### Backend Requirements
+
+Python 3.11+ with comprehensive type hints. FastAPI with async/await patterns for all I/O operations. SQLAlchemy 2.0+ with async sessions and relationship loading. Alembic for database migrations with validation scripts.
+
+### Frontend Requirements
+
+TypeScript with strict mode enabled. Next.js 14+ with App Router for modern React patterns. shadcn/ui components with Tailwind CSS for consistent styling. React Hook Form with Zod validation for medical questionnaires.
+
+### Infrastructure Standards
+
+Docker containers for all services with multi-stage builds. PostgreSQL with proper indexing for medical record queries. Environment-based configuration with .env files. Health checks and graceful shutdown patterns.
+
+## Development Workflow
+
+### Code Quality Gates
+
+All code must pass type checking (mypy for Python, TypeScript strict mode). Integration tests must use real database connections. Code coverage minimum 80% for medical data operations. Linting and formatting enforced (black, prettier, eslint).
+
+### Review Process
+
+All PRs must include tests that initially fail (RED phase demonstration). Medical data changes require additional security review. API contract changes require OpenAPI specification updates. Performance impact assessment for database schema changes.
+
+### Deployment Standards
+
+Blue-green deployment with health checks. Database migrations validated in staging environment. Rollback procedures tested and documented. Container security scanning before production deployment.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Constitution supersedes all other development practices. Amendments require documentation, approval from project maintainers, and migration plan. All PRs and code reviews must verify constitutional compliance. Complexity deviations must be justified with simpler alternative rejection rationale.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Use `.github/copilot-instructions.md` for runtime development guidance and domain-specific patterns. Regular constitutional review scheduled quarterly to ensure principles remain aligned with project evolution.
+
+**Version**: 1.0.0 | **Ratified**: September 10, 2025 | **Last Amended**: September 10, 2025
