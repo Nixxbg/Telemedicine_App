@@ -40,7 +40,7 @@
 
 - [x] T001 Create telemedicine project structure (backend/, frontend/, docker-compose.yml)
 - [x] T002 Initialize FastAPI backend with dependencies (FastAPI, SQLAlchemy, Pydantic, JWT)
-- [ ] T003 [P] Initialize Next.js frontend with TypeScript and shadcn/ui dependencies
+- [x] T003 [P] Initialize Next.js frontend with TypeScript and shadcn/ui dependencies
 - [ ] T004 [P] Configure PostgreSQL database with Docker and initial migrations
 - [ ] T005 [P] Setup linting and formatting (backend: black, isort, mypy; frontend: ESLint, Prettier)
 - [ ] T006 [P] Configure pytest for backend and Jest for frontend testing
