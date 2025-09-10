@@ -368,11 +368,18 @@ backend/
 
 frontend/
 ├── src/
-│   ├── components/     # Reusable components
-│   ├── pages/         # Next.js pages
-│   ├── lib/           # Utilities, API clients
-│   ├── hooks/         # Custom React hooks
-│   └── types/         # TypeScript definitions
+│   ├── app/           # Next.js App Router pages
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── auth/      # Authentication pages
+│   │   ├── patient/   # Patient dashboard, profile
+│   │   ├── doctor/    # Doctor dashboard
+│   │   └── appointments/
+│   ├── components/    # Reusable components
+│   ├── lib/          # Utilities, API clients
+│   ├── hooks/        # Custom React hooks
+│   └── types/        # TypeScript definitions
 └── tests/
 ```
 
