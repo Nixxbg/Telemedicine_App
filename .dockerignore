@@ -22,7 +22,7 @@ coverage.xml
 *.cover
 *.log
 .git
-.mypy_cache
+.pyright_cache
 .pytest_cache
 .hypothesis
 

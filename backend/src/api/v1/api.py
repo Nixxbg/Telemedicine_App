@@ -4,7 +4,7 @@ Main API router for version 1 endpoints
 
 from fastapi import APIRouter
 
-from src.api.v1.endpoints import auth, medical_records, appointments, messages
+from src.api.v1.endpoints import appointments, auth, medical_records, messages
 
 api_router = APIRouter()
 

@@ -3,7 +3,8 @@ Core configuration for the telemedicine application
 """
 
 from typing import List, Optional, Union
-from pydantic import AnyHttpUrl, field_validator, ValidationInfo
+
+from pydantic import AnyHttpUrl, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 
