@@ -3,14 +3,14 @@ version: "3.8"
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: telemedicine_postgres
     environment:
       POSTGRES_DB: telemedicine
       POSTGRES_USER: telemedicine_user
       POSTGRES_PASSWORD: telemedicine_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/docker/init.sql:/docker-entrypoint-initdb.d/init.sql

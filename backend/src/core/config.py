@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "telemedicine_user"
     POSTGRES_PASSWORD: str = "telemedicine_password"
-    POSTGRES_DB: str = "telemedicine_db"
+    POSTGRES_DB: str = "telemedicine"
     POSTGRES_PORT: str = "5432"
     DATABASE_URL: Optional[str] = None
 
@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days
     ALGORITHM: str = "HS256"
+
+    # Environment
+    ENVIRONMENT: str = "development"
 
     # JWT
     JWT_SECRET_KEY: str = SECRET_KEY
