@@ -156,16 +156,26 @@ backend/
 
 frontend/
 ├── src/
+│   ├── app/            # Next.js App Router pages
+│   │   ├── globals.css # Global styles
+│   │   ├── layout.tsx  # Root layout
+│   │   ├── page.tsx    # Home page
+│   │   ├── auth/       # Authentication pages
+│   │   │   ├── login/
+│   │   │   └── register/
+│   │   ├── patient/    # Patient dashboard, profile
+│   │   │   ├── dashboard/
+│   │   │   ├── profile/
+│   │   │   └── medical-records/
+│   │   ├── doctor/     # Doctor dashboard
+│   │   │   ├── dashboard/
+│   │   │   └── availability/
+│   │   └── appointments/
 │   ├── components/      # shadcn/ui + custom components
 │   │   ├── ui/         # shadcn/ui base components
 │   │   ├── forms/      # Medical questionnaire components
 │   │   ├── dashboard/  # Patient/Doctor dashboards
 │   │   └── messaging/  # Chat components
-│   ├── pages/          # Next.js pages
-│   │   ├── auth/       # Login, register pages
-│   │   ├── patient/    # Patient dashboard, profile
-│   │   ├── doctor/     # Doctor dashboard
-│   │   └── appointments/
 │   ├── lib/            # Utility functions, API clients
 │   │   ├── api.ts      # API client configuration
 │   │   ├── auth.ts     # Authentication utilities

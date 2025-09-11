@@ -62,7 +62,7 @@ Docker containers for all services with multi-stage builds. PostgreSQL with prop
 
 ### Code Quality Gates
 
-All code must pass type checking (mypy for Python, TypeScript strict mode). Integration tests must use real database connections. Code coverage minimum 80% for medical data operations. Linting and formatting enforced (black, prettier, eslint).
+All code must pass type checking (pyright for Python, TypeScript strict mode). Integration tests must use real database connections. Code coverage minimum 80% for medical data operations. Linting and formatting enforced (ruff, prettier, eslint).
 
 ### Review Process
 
