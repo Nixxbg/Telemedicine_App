@@ -38,13 +38,13 @@
 
 ## Phase 3.1: Environment Setup
 
-- [ ] T001 Create telemedicine project structure (backend/, frontend/, docker-compose.yml)
-- [ ] T002 Initialize FastAPI backend with dependencies (FastAPI, SQLAlchemy, Pydantic, JWT)
-- [ ] T003 [P] Initialize Next.js frontend with TypeScript and shadcn/ui dependencies
-- [ ] T004 [P] Configure PostgreSQL database with Docker and initial migrations
-- [ ] T005 [P] Setup linting and formatting (backend: black, isort, mypy; frontend: ESLint, Prettier)
-- [ ] T006 [P] Configure pytest for backend and Jest for frontend testing
-- [ ] T007 Configure Docker development environment with hot reload
+- [x] T001 Create telemedicine project structure (backend/, frontend/, docker-compose.yml)
+- [x] T002 Initialize FastAPI backend with dependencies (FastAPI, SQLAlchemy, Pydantic, JWT)
+- [x] T003 [P] Initialize Next.js frontend with TypeScript and shadcn/ui dependencies
+- [x] T004 [P] Configure PostgreSQL database with Docker and initial migrations
+- [x] T005 [P] Setup linting and formatting (backend: ruff, pyright; frontend: ESLint, Prettier)
+- [x] T006 [P] Configure pytest for backend and Jest for frontend testing
+- [x] T007 Configure Docker development environment with hot reload
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 
