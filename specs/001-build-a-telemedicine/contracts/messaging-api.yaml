@@ -1,0 +1,889 @@
+openapi: 3.0.3
+info:
+  title: Telemedicine Messaging API
+  description: Secure messaging system for patient-doctor communication
+  version: 1.0.0
+  contact:
+    name: Telemedicine API
+    email: api@telemedicine.com
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.telemedicine.com/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /messages:
+    get:
+      summary: Get user's messages
+      description: Retrieve messages for the authenticated user
+      tags:
+        - Messages
+      parameters:
+        - name: appointment_id
+          in: query
+          description: Filter messages by appointment
+          schema:
+            type: string
+            format: uuid
+        - name: conversation_with
+          in: query
+          description: Filter messages with specific user
+          schema:
+            type: string
+            format: uuid
+        - name: message_type
+          in: query
+          description: Filter by message type
+          schema:
+            type: string
+            enum: [text, system_notification]
+        - name: unread_only
+          in: query
+          description: Show only unread messages
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Number of messages to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: sort_order
+          in: query
+          description: Sort order for messages
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessagesResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Send new message
+      description: Send a message to another user (patient to doctor or vice versa)
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+            examples:
+              patient_to_doctor:
+                summary: Patient sends message to doctor
+                value:
+                  recipient_id: "123e4567-e89b-12d3-a456-426614174001"
+                  appointment_id: "456e7890-e12c-34d5-b678-526614174002"
+                  content: "I have been experiencing some side effects from the medication. Can we discuss alternative options?"
+              doctor_to_patient:
+                summary: Doctor responds to patient
+                value:
+                  recipient_id: "123e4567-e89b-12d3-a456-426614174000"
+                  appointment_id: "456e7890-e12c-34d5-b678-526614174002"
+                  content: "Thank you for letting me know. Please describe the specific side effects you're experiencing. We can definitely explore other medication options during our next appointment."
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid message data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                empty_content:
+                  summary: Message content is empty
+                  value:
+                    error: "validation_error"
+                    message: "Message content cannot be empty"
+                invalid_recipient:
+                  summary: Invalid recipient for user role
+                  value:
+                    error: "access_denied"
+                    message: "Patients can only message doctors from their appointments"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - invalid recipient or appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /messages/{message_id}:
+    get:
+      summary: Get specific message
+      description: Retrieve details of a specific message
+      tags:
+        - Messages
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          description: Message UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Message retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageDetail'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - can only view own messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Mark message as read
+      description: Update message read status
+      tags:
+        - Messages
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          description: Message UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMessageRequest'
+            examples:
+              mark_read:
+                summary: Mark message as read
+                value:
+                  is_read: true
+      responses:
+        '200':
+          description: Message updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - can only update messages sent to you
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /messages/conversations:
+    get:
+      summary: Get message conversations
+      description: Retrieve list of message conversations for the authenticated user
+      tags:
+        - Messages
+      parameters:
+        - name: include_archived
+          in: query
+          description: Include archived conversations
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Conversations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationsResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /messages/conversations/{conversation_id}/mark-read:
+    put:
+      summary: Mark conversation messages as read
+      description: Mark all messages in a conversation as read
+      tags:
+        - Messages
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          description: Conversation identifier (appointment_id or user_id)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages marked as read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consultation-notes:
+    get:
+      summary: Get consultation notes
+      description: "Retrieve consultation notes (doctors: all their notes, patients: their own notes)"
+      tags:
+        - Consultation Notes
+      parameters:
+        - name: patient_id
+          in: query
+          description: Filter by patient (doctors only)
+          schema:
+            type: string
+            format: uuid
+        - name: appointment_id
+          in: query
+          description: Filter by appointment
+          schema:
+            type: string
+            format: uuid
+        - name: from_date
+          in: query
+          description: Filter notes from this date
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Filter notes until this date
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Consultation notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationNotesResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create consultation note
+      description: Add consultation notes after appointment (doctors only)
+      tags:
+        - Consultation Notes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConsultationNoteRequest'
+            examples:
+              complete_note:
+                summary: Complete SOAP note
+                value:
+                  appointment_id: "456e7890-e12c-34d5-b678-526614174002"
+                  subjective: "Patient reports feeling better since starting medication. Some mild headaches in the morning."
+                  objective: "Blood pressure: 120/80 mmHg. Heart rate: 72 bpm. Patient appears well and in good spirits."
+                  assessment: "Hypertension well controlled on current medication. Mild headaches likely adjustment period."
+                  plan: "Continue current medication. Follow up in 4 weeks. Patient to monitor headaches and report if worsening."
+                  follow_up_required: true
+                  follow_up_timeframe: "4 weeks"
+                  medications_prescribed: [
+                    {
+                      "name": "Lisinopril",
+                      "dosage": "10mg",
+                      "frequency": "Once daily",
+                      "duration": "30 days"
+                    }
+                  ]
+      responses:
+        '201':
+          description: Consultation note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationNote'
+        '400':
+          description: Invalid consultation note data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied - doctors only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /consultation-notes/{note_id}:
+    get:
+      summary: Get specific consultation note
+      description: Retrieve details of a specific consultation note
+      tags:
+        - Consultation Notes
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          description: Consultation note UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Consultation note retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationNoteDetail'
+        '404':
+          description: Consultation note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update consultation note
+      description: Update existing consultation note (within 24 hours, doctors only)
+      tags:
+        - Consultation Notes
+      parameters:
+        - name: note_id
+          in: path
+          required: true
+          description: Consultation note UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConsultationNoteRequest'
+      responses:
+        '200':
+          description: Consultation note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationNote'
+        '400':
+          description: Update not allowed or invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                update_expired:
+                  summary: 24-hour update window expired
+                  value:
+                    error: "update_expired"
+                    message: "Consultation notes can only be updated within 24 hours of creation"
+        '404':
+          description: Consultation note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique message identifier
+        sender_id:
+          type: string
+          format: uuid
+          description: Message sender UUID
+        recipient_id:
+          type: string
+          format: uuid
+          description: Message recipient UUID
+        appointment_id:
+          type: string
+          format: uuid
+          description: Related appointment UUID
+        content:
+          type: string
+          description: Message content (text only)
+        message_type:
+          type: string
+          enum: [text, system_notification]
+          description: Type of message
+        is_read:
+          type: boolean
+          description: Whether message has been read
+        sent_at:
+          type: string
+          format: date-time
+          description: Message timestamp
+        read_at:
+          type: string
+          format: date-time
+          description: Read timestamp (null if unread)
+
+    MessageDetail:
+      allOf:
+        - $ref: '#/components/schemas/Message'
+        - type: object
+          properties:
+            sender:
+              $ref: '#/components/schemas/UserSummary'
+            recipient:
+              $ref: '#/components/schemas/UserSummary'
+            appointment:
+              $ref: '#/components/schemas/AppointmentSummary'
+
+    SendMessageRequest:
+      type: object
+      required:
+        - recipient_id
+        - content
+      properties:
+        recipient_id:
+          type: string
+          format: uuid
+          description: Message recipient UUID
+        appointment_id:
+          type: string
+          format: uuid
+          description: Related appointment UUID (optional but recommended)
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Message content
+
+    UpdateMessageRequest:
+      type: object
+      properties:
+        is_read:
+          type: boolean
+          description: Mark message as read/unread
+
+    MessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MessageDetail'
+        total_count:
+          type: integer
+          description: Total number of messages
+        unread_count:
+          type: integer
+          description: Number of unread messages
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    Conversation:
+      type: object
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+          description: Conversation identifier
+        participant:
+          $ref: '#/components/schemas/UserSummary'
+        appointment:
+          $ref: '#/components/schemas/AppointmentSummary'
+        last_message:
+          $ref: '#/components/schemas/Message'
+        unread_count:
+          type: integer
+          description: Number of unread messages in conversation
+        total_messages:
+          type: integer
+          description: Total messages in conversation
+        last_activity:
+          type: string
+          format: date-time
+          description: Timestamp of last message
+
+    ConversationsResponse:
+      type: object
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversation'
+        total_count:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    ConsultationNote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique note identifier
+        appointment_id:
+          type: string
+          format: uuid
+          description: Related appointment
+        doctor_id:
+          type: string
+          format: uuid
+          description: Note author
+        patient_id:
+          type: string
+          format: uuid
+          description: Note subject
+        subjective:
+          type: string
+          description: Patient-reported symptoms and concerns
+        objective:
+          type: string
+          description: Doctor's observations and findings
+        assessment:
+          type: string
+          description: Medical assessment and diagnosis
+        plan:
+          type: string
+          description: Treatment plan and recommendations
+        follow_up_required:
+          type: boolean
+          description: Whether follow-up is needed
+        follow_up_timeframe:
+          type: string
+          description: Recommended follow-up timing
+        medications_prescribed:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescribedMedication'
+          description: List of prescribed medications
+        recommendations:
+          type: string
+          description: General health recommendations
+        created_at:
+          type: string
+          format: date-time
+          description: Note creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+
+    ConsultationNoteDetail:
+      allOf:
+        - $ref: '#/components/schemas/ConsultationNote'
+        - type: object
+          properties:
+            doctor:
+              $ref: '#/components/schemas/UserSummary'
+            patient:
+              $ref: '#/components/schemas/UserSummary'
+            appointment:
+              $ref: '#/components/schemas/AppointmentSummary'
+
+    CreateConsultationNoteRequest:
+      type: object
+      required:
+        - appointment_id
+      properties:
+        appointment_id:
+          type: string
+          format: uuid
+        subjective:
+          type: string
+          maxLength: 2000
+        objective:
+          type: string
+          maxLength: 2000
+        assessment:
+          type: string
+          maxLength: 2000
+        plan:
+          type: string
+          maxLength: 2000
+        follow_up_required:
+          type: boolean
+          default: false
+        follow_up_timeframe:
+          type: string
+          maxLength: 200
+        medications_prescribed:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescribedMedication'
+        recommendations:
+          type: string
+          maxLength: 2000
+
+    UpdateConsultationNoteRequest:
+      type: object
+      properties:
+        subjective:
+          type: string
+          maxLength: 2000
+        objective:
+          type: string
+          maxLength: 2000
+        assessment:
+          type: string
+          maxLength: 2000
+        plan:
+          type: string
+          maxLength: 2000
+        follow_up_required:
+          type: boolean
+        follow_up_timeframe:
+          type: string
+          maxLength: 200
+        medications_prescribed:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescribedMedication'
+        recommendations:
+          type: string
+          maxLength: 2000
+
+    ConsultationNotesResponse:
+      type: object
+      properties:
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConsultationNoteDetail'
+        total_count:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    PrescribedMedication:
+      type: object
+      required:
+        - name
+        - dosage
+        - frequency
+      properties:
+        name:
+          type: string
+          description: Medication name
+        dosage:
+          type: string
+          description: Dosage amount
+        frequency:
+          type: string
+          description: How often to take
+        duration:
+          type: string
+          description: Duration of treatment
+        instructions:
+          type: string
+          description: Special instructions
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_type:
+          type: string
+          enum: [patient, doctor]
+        first_name:
+          type: string
+        last_name:
+          type: string
+        username:
+          type: string
+          description: Patient username (patients only)
+        doctor_id:
+          type: string
+          description: Doctor ID (doctors only)
+
+    AppointmentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scheduled_start:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+        appointment_type:
+          type: string
+          enum: [consultation, follow_up, urgent]
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error context
