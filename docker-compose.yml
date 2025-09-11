@@ -56,7 +56,7 @@ services:
       - /app/.next
     depends_on:
       - backend
-    command: npm run dev
+    command: bun run dev
 
 volumes:
   postgres_data:
