@@ -62,7 +62,7 @@
 - [x] T012 [P] Contract test GET /api/v1/medical-records in backend/tests/contract/test_medical_records_list.py
 - [x] T013 [P] Contract test POST /api/v1/medical-records in backend/tests/contract/test_medical_records_create.py
 - [x] T014 [P] Contract test PUT /api/v1/medical-records/{id} in backend/tests/contract/test_medical_records_update.py
-- [ ] T015 [P] Contract test GET /api/v1/medical-records/{id}/versions in backend/tests/contract/test_medical_records_versions.py
+- [x] T015 [P] Contract test GET /api/v1/medical-records/{id}/versions in backend/tests/contract/test_medical_records_versions.py
 
 ### Appointments Contract Tests
 
