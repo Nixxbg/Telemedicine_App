@@ -55,7 +55,7 @@
 - [x] T008 [P] Contract test POST /api/v1/auth/register (patient) in backend/tests/contract/test_auth_register.py
 - [x] T009 [P] Contract test POST /api/v1/auth/login (patient/doctor) in backend/tests/contract/test_auth_login.py
 - [x] T010 [P] Contract test POST /api/v1/auth/refresh in backend/tests/contract/test_auth_refresh.py
-- [ ] T011 [P] Contract test GET /api/v1/auth/me in backend/tests/contract/test_auth_me.py
+- [x] T011 [P] Contract test GET /api/v1/auth/me in backend/tests/contract/test_auth_me.py
 
 ### Medical Records Contract Tests
 
