@@ -68,8 +68,8 @@
 
 - [x] T016 [P] Contract test GET /api/v1/appointments in backend/tests/contract/test_appointments_list.py
 - [x] T017 [P] Contract test POST /api/v1/appointments in backend/tests/contract/test_appointments_create.py
-- [ ] T018 [P] Contract test GET /api/v1/doctors/{id}/availability in backend/tests/contract/test_doctor_availability.py
-- [ ] T019 [P] Contract test PUT /api/v1/appointments/{id}/cancel in backend/tests/contract/test_appointments_cancel.py
+- [x] T018 [P] Contract test GET /api/v1/doctors/{id}/availability in backend/tests/contract/test_doctor_availability.py
+- [x] T019 [P] Contract test PUT /api/v1/appointments/{id}/cancel in backend/tests/contract/test_appointments_cancel.py
 
 ### Messaging Contract Tests
 
