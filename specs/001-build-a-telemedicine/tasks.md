@@ -98,11 +98,11 @@
 
 ### Business Logic Services
 
-- [ ] T034 [P] AuthService (JWT, registration, login) in backend/src/services/auth_service.py
-- [ ] T035 [P] PatientService (profile, questionnaire) in backend/src/services/patient_service.py
-- [ ] T036 [P] MedicalRecordService (CRUD, versioning) in backend/src/services/medical_record_service.py
-- [ ] T037 [P] AppointmentService (booking, availability) in backend/src/services/appointment_service.py
-- [ ] T038 [P] MessageService (chat, notifications) in backend/src/services/message_service.py
+- [x] T034 [P] AuthService (JWT, registration, login) in backend/src/services/auth_service.py
+- [x] T035 [P] PatientService (profile, questionnaire) in backend/src/services/patient_service.py
+- [x] T036 [P] MedicalRecordService (CRUD, versioning) in backend/src/services/medical_record_service.py
+- [x] T037 [P] AppointmentService (booking, availability) in backend/src/services/appointment_service.py
+- [x] T038 [P] MessageService (chat, notifications) in backend/src/services/message_service.py
 
 ### API Endpoints
 
