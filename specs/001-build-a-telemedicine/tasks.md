@@ -79,10 +79,10 @@
 
 ### Integration Tests
 
-- [ ] T023 [P] Integration test patient registration flow in backend/tests/integration/test_patient_registration.py
-- [ ] T024 [P] Integration test doctor authentication in backend/tests/integration/test_doctor_auth.py
-- [ ] T025 [P] Integration test medical record versioning in backend/tests/integration/test_medical_versioning.py
-- [ ] T026 [P] Integration test appointment booking flow in backend/tests/integration/test_appointment_booking.py
+- [x] T023 [P] Integration test patient registration flow in backend/tests/integration/test_patient_registration.py
+- [x] T024 [P] Integration test doctor authentication in backend/tests/integration/test_doctor_auth.py
+- [x] T025 [P] Integration test medical record versioning in backend/tests/integration/test_medical_versioning.py
+- [x] T026 [P] Integration test appointment booking flow in backend/tests/integration/test_appointment_booking.py
 
 ## Phase 3.3: Core Backend Implementation (ONLY after tests are failing)
 
