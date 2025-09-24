@@ -131,15 +131,29 @@ class AuthService:
         first_name: str,
         last_name: str,
         date_of_birth: str,  # Will be converted to date
+        phone_number: Optional[str] = None,
+        emergency_contact_name: Optional[str] = None,
+        emergency_contact_phone: Optional[str] = None,
     ) -> tuple[User, Patient]:
         """
-        Register a new patient user
+        Register a new patient user.
+
+        Args:
+            email: Unique patient email address.
+            password: Plain text password to hash and store.
+            username: Unique patient username.
+            first_name: Patient first name.
+            last_name: Patient last name.
+            date_of_birth: Date of birth string in ISO format (YYYY-MM-DD).
+            phone_number: Optional patient phone number in E.164 format.
+            emergency_contact_name: Optional emergency contact name.
+            emergency_contact_phone: Optional emergency contact phone number.
 
         Returns:
-            tuple: (User, Patient) objects
+            tuple[User, Patient]: Newly created user and patient records.
 
         Raises:
-            HTTPException: If email or username already exists
+            HTTPException: If email or username already exists.
         """
         # Check if email already exists
         existing_user = await self.get_user_by_email(email)
@@ -188,6 +202,9 @@ class AuthService:
             first_name=first_name,
             last_name=last_name,
             date_of_birth=dob,
+            phone_number=phone_number,
+            emergency_contact_name=emergency_contact_name,
+            emergency_contact_phone=emergency_contact_phone,
             profile_completed=False,
         )
         self.session.add(patient)
@@ -205,17 +222,32 @@ class AuthService:
         doctor_id: str,
         first_name: str,
         last_name: str,
-        specialty: str,
-        license_number: str,
+        specializations: list[str],
+        license_number: Optional[str] = None,
+        bio: Optional[str] = None,
+        years_experience: Optional[int] = None,
+        is_accepting_patients: bool = False,
     ) -> tuple[User, Doctor]:
         """
-        Register a new doctor user
+        Register a new doctor user.
+
+        Args:
+            email: Unique doctor email address.
+            password: Plain text password to hash and store.
+            doctor_id: Pre-assigned doctor identifier.
+            first_name: Doctor first name.
+            last_name: Doctor last name.
+            specializations: List of doctor specializations.
+            license_number: Optional medical license number.
+            bio: Optional professional biography.
+            years_experience: Optional years of experience value.
+            is_accepting_patients: Whether doctor currently accepts patients.
 
         Returns:
-            tuple: (User, Doctor) objects
+            tuple[User, Doctor]: Newly created user and doctor records.
 
         Raises:
-            HTTPException: If email or doctor_id already exists
+            HTTPException: If email or doctor_id already exists.
         """
         # Check if email already exists
         existing_user = await self.get_user_by_email(email)
@@ -235,6 +267,12 @@ class AuthService:
                 detail="Doctor ID already exists",
             )
 
+        if not specializations:
+            raise HTTPException(  # pragma: no cover - validated upstream
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one specialization is required",
+            )
+
         # Create user
         user = User(
             id=uuid4(),
@@ -252,9 +290,11 @@ class AuthService:
             doctor_id=doctor_id,
             first_name=first_name,
             last_name=last_name,
-            specialty=specialty,
+            specializations=specializations,
             license_number=license_number,
-            is_available=False,  # Default to not available
+            bio=bio,
+            years_experience=years_experience,
+            is_accepting_patients=is_accepting_patients,
         )
         self.session.add(doctor)
 

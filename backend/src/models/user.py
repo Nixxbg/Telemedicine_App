@@ -48,7 +48,14 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # User type discrimination
-    user_type: Mapped[UserType] = mapped_column(Enum(UserType), nullable=False)
+    user_type: Mapped[UserType] = mapped_column(
+        Enum(
+            UserType,
+            values_callable=lambda enum_cls: [member.value for member in enum_cls],
+            native_enum=False,
+        ),
+        nullable=False,
+    )
 
     # Account status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
