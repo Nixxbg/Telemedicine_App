@@ -73,9 +73,9 @@
 
 ### Messaging Contract Tests
 
-- [ ] T020 [P] Contract test GET /api/v1/messages in backend/tests/contract/test_messages_list.py
-- [ ] T021 [P] Contract test POST /api/v1/messages in backend/tests/contract/test_messages_create.py
-- [ ] T022 [P] Contract test WebSocket /ws/messages/{user_id} in backend/tests/contract/test_messages_websocket.py
+- [x] T020 [P] Contract test GET /api/v1/messages in backend/tests/contract/test_messages_list.py
+- [x] T021 [P] Contract test POST /api/v1/messages in backend/tests/contract/test_messages_create.py
+- [x] T022 [P] Contract test WebSocket /ws/messages/{user_id} in backend/tests/contract/test_messages_websocket.py
 
 ### Integration Tests
 
