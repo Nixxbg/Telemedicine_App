@@ -88,13 +88,13 @@
 
 ### Database Models
 
-- [ ] T027 [P] User base model in backend/src/models/user.py
-- [ ] T028 [P] Patient model in backend/src/models/patient.py
-- [ ] T029 [P] Doctor model in backend/src/models/doctor.py
-- [ ] T030 [P] MedicalRecord with versioning in backend/src/models/medical_record.py
-- [ ] T031 [P] Appointment model in backend/src/models/appointment.py
-- [ ] T032 [P] Message model in backend/src/models/message.py
-- [ ] T033 [P] QuestionnaireProgress model in backend/src/models/questionnaire.py
+- [x] T027 [P] User base model in backend/src/models/user.py
+- [x] T028 [P] Patient model in backend/src/models/patient.py
+- [x] T029 [P] Doctor model in backend/src/models/doctor.py
+- [x] T030 [P] MedicalRecord with versioning in backend/src/models/medical_record.py
+- [x] T031 [P] Appointment model in backend/src/models/appointment.py
+- [x] T032 [P] Message model in backend/src/models/message.py
+- [x] T033 [P] QuestionnaireProgress model in backend/src/models/questionnaire.py
 
 ### Business Logic Services
 
