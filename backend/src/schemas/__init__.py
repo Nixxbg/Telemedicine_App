@@ -1,5 +1,15 @@
 """Schemas package exports."""
 
+from src.schemas.appointment import (  # noqa: F401
+    AppointmentCreateRequest,
+    AppointmentResponse,
+    AppointmentsResponse,
+    AppointmentStatusUpdateRequest,
+    DoctorAvailabilityResponse,
+    DoctorAvailabilitySlot,
+    DoctorSummary,
+    PatientSummary,
+)
 from src.schemas.auth import (  # noqa: F401
     AuthenticationResponse,
     DoctorProfile,

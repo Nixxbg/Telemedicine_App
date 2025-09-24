@@ -9,6 +9,7 @@ import pytest
 
 import src.models  # noqa: F401  # Ensure metadata tables are registered
 from src.core.database import create_tables, drop_tables
+from src.core.seed_data import seed_reference_data
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -23,4 +24,5 @@ def reset_database() -> Generator[None, None, None]:
 
     asyncio.run(drop_tables())
     asyncio.run(create_tables())
+    asyncio.run(seed_reference_data())
     yield

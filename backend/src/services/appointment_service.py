@@ -9,7 +9,7 @@ This service handles:
 - Appointment history and filtering
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -470,6 +470,46 @@ class AppointmentService:
             current_time += timedelta(minutes=slot_duration_minutes)
 
         return slots
+
+    async def get_doctor_availability_range(
+        self,
+        doctor_id: UUID,
+        from_date: date,
+        to_date: date,
+        slot_duration_minutes: int,
+    ) -> tuple[Doctor, List[Dict[str, Any]]]:
+        """Aggregate availability slots for a doctor across a date range."""
+
+        doctor = await self._get_doctor_by_id(doctor_id)
+        if not doctor:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Doctor not found",
+            )
+
+        all_slots: List[Dict[str, Any]] = []
+        current_day = from_date
+        today = datetime.now(timezone.utc).date()
+        while current_day <= to_date:
+            if current_day < today:
+                current_day += timedelta(days=1)
+                continue
+
+            day_start = datetime(
+                year=current_day.year,
+                month=current_day.month,
+                day=current_day.day,
+                tzinfo=timezone.utc,
+            )
+            day_slots = await self.get_doctor_availability_slots(
+                doctor_id,
+                day_start,
+                slot_duration_minutes=slot_duration_minutes,
+            )
+            all_slots.extend(day_slots)
+            current_day += timedelta(days=1)
+
+        return doctor, all_slots
 
     async def _validate_appointment_time(
         self, scheduled_start: datetime, scheduled_end: datetime
