@@ -16,4 +16,7 @@ api_router.include_router(
 api_router.include_router(
     appointments.router, prefix="/appointments", tags=["appointments"]
 )
+api_router.include_router(
+    appointments.doctors_router, prefix="/doctors", tags=["appointments"]
+)
 api_router.include_router(messages.router, prefix="/messages", tags=["messages"])

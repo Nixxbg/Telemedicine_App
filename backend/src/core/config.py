@@ -4,7 +4,7 @@ Core configuration for the telemedicine application
 
 from typing import List, Optional, Union
 
-from pydantic import AnyHttpUrl, ValidationInfo, field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -19,11 +19,11 @@ class Settings(BaseSettings):
 
     # Server
     SERVER_NAME: str = "telemedicine-backend"
-    SERVER_HOST: AnyHttpUrl = "http://localhost"
+    SERVER_HOST: str = "http://localhost"
     SERVER_PORT: int = 8000
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+    BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost:3000",  # Next.js dev server
         "http://localhost:8000",  # FastAPI server
     ]
@@ -76,4 +76,9 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 
-settings = Settings()
+def get_settings() -> Settings:
+    """Get application settings instance"""
+    return Settings()
+
+
+settings = get_settings()
