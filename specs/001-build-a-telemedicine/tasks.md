@@ -111,7 +111,7 @@
 - [x] T041 Appointment booking and management endpoints
 - [x] T042 Doctor availability management endpoints
 - [x] T043 Messaging API endpoints
-- [ ] T044 WebSocket handler for real-time messaging
+- [x] T044 WebSocket handler for real-time messaging
 - [ ] T045 Input validation and error handling across all endpoints
 
 ## Phase 3.4: Frontend Implementation

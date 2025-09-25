@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 import src.models  # noqa: F401
 from src.api.v1.api import api_router
+from src.api.v1.websocket import messaging_websocket_router
 from src.core.config import settings
 from src.core.database import create_tables, drop_tables
 from src.core.seed_data import seed_reference_data
@@ -55,6 +56,7 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(messaging_websocket_router)
 
 
 def _format_validation_errors(errors: Sequence[dict[str, Any]]) -> list[dict[str, str]]:
