@@ -109,7 +109,7 @@
 - [x] T039 Authentication endpoints (/auth/register, /auth/login, /auth/refresh, /auth/me)
 - [x] T040 Medical records endpoints with versioning support
 - [x] T041 Appointment booking and management endpoints
-- [ ] T042 Doctor availability management endpoints
+- [x] T042 Doctor availability management endpoints
 - [ ] T043 Messaging API endpoints
 - [ ] T044 WebSocket handler for real-time messaging
 - [ ] T045 Input validation and error handling across all endpoints

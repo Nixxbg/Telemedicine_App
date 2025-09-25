@@ -438,13 +438,18 @@ class AppointmentService:
             date_filter=date,
         )
 
-        # Generate all possible slots
-        slots = []
+        # Generate all possible slots and collect only the available ones
+        slots: list[dict[str, Any]] = []
         current_time = start_of_day
+        now = datetime.now(timezone.utc)
         while current_time + timedelta(minutes=slot_duration_minutes) <= end_of_day:
             slot_end = current_time + timedelta(minutes=slot_duration_minutes)
 
-            # Check if slot conflicts with existing appointments
+            # Prevent offering slots that have already started
+            if slot_end <= now:
+                current_time += timedelta(minutes=slot_duration_minutes)
+                continue
+
             is_available = True
             for appointment in existing_appointments:
                 if appointment.status in [
@@ -458,14 +463,15 @@ class AppointmentService:
                         is_available = False
                         break
 
-            slots.append(
-                {
-                    "start_time": current_time.isoformat(),
-                    "end_time": slot_end.isoformat(),
-                    "is_available": is_available,
-                    "duration_minutes": slot_duration_minutes,
-                }
-            )
+            if is_available:
+                slots.append(
+                    {
+                        "start_time": current_time.isoformat(),
+                        "end_time": slot_end.isoformat(),
+                        "is_available": True,
+                        "duration_minutes": slot_duration_minutes,
+                    }
+                )
 
             current_time += timedelta(minutes=slot_duration_minutes)
 

@@ -466,6 +466,13 @@ async def get_doctor_availability(
             "Only patients and doctors can view doctor availability",
         )
 
+    if current_user.user_type == UserType.DOCTOR and current_user.id != doctor_id:
+        raise http_error(
+            status.HTTP_403_FORBIDDEN,
+            "authorization_error",
+            "Doctors can only view their own availability",
+        )
+
     if from_date > to_date:
         raise http_error(
             status.HTTP_400_BAD_REQUEST,
