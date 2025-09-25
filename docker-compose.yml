@@ -29,7 +29,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://telemedicine_user:telemedicine_password@postgres:5432/telemedicine
+      - DATABASE_URL=postgresql+asyncpg://telemedicine_user:telemedicine_password@postgres:5432/telemedicine
       - SECRET_KEY=your-secret-key-here
       - ENVIRONMENT=development
     volumes:

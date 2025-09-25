@@ -52,67 +52,67 @@
 
 ### Authentication Contract Tests
 
-- [ ] T008 [P] Contract test POST /api/v1/auth/register (patient) in backend/tests/contract/test_auth_register.py
-- [ ] T009 [P] Contract test POST /api/v1/auth/login (patient/doctor) in backend/tests/contract/test_auth_login.py
-- [ ] T010 [P] Contract test POST /api/v1/auth/refresh in backend/tests/contract/test_auth_refresh.py
-- [ ] T011 [P] Contract test GET /api/v1/auth/me in backend/tests/contract/test_auth_me.py
+- [x] T008 [P] Contract test POST /api/v1/auth/register (patient) in backend/tests/contract/test_auth_register.py
+- [x] T009 [P] Contract test POST /api/v1/auth/login (patient/doctor) in backend/tests/contract/test_auth_login.py
+- [x] T010 [P] Contract test POST /api/v1/auth/refresh in backend/tests/contract/test_auth_refresh.py
+- [x] T011 [P] Contract test GET /api/v1/auth/me in backend/tests/contract/test_auth_me.py
 
 ### Medical Records Contract Tests
 
-- [ ] T012 [P] Contract test GET /api/v1/medical-records in backend/tests/contract/test_medical_records_list.py
-- [ ] T013 [P] Contract test POST /api/v1/medical-records in backend/tests/contract/test_medical_records_create.py
-- [ ] T014 [P] Contract test PUT /api/v1/medical-records/{id} in backend/tests/contract/test_medical_records_update.py
-- [ ] T015 [P] Contract test GET /api/v1/medical-records/{id}/versions in backend/tests/contract/test_medical_records_versions.py
+- [x] T012 [P] Contract test GET /api/v1/medical-records in backend/tests/contract/test_medical_records_list.py
+- [x] T013 [P] Contract test POST /api/v1/medical-records in backend/tests/contract/test_medical_records_create.py
+- [x] T014 [P] Contract test PUT /api/v1/medical-records/{id} in backend/tests/contract/test_medical_records_update.py
+- [x] T015 [P] Contract test GET /api/v1/medical-records/{id}/versions in backend/tests/contract/test_medical_records_versions.py
 
 ### Appointments Contract Tests
 
-- [ ] T016 [P] Contract test GET /api/v1/appointments in backend/tests/contract/test_appointments_list.py
-- [ ] T017 [P] Contract test POST /api/v1/appointments in backend/tests/contract/test_appointments_create.py
-- [ ] T018 [P] Contract test GET /api/v1/doctors/{id}/availability in backend/tests/contract/test_doctor_availability.py
-- [ ] T019 [P] Contract test PUT /api/v1/appointments/{id}/cancel in backend/tests/contract/test_appointments_cancel.py
+- [x] T016 [P] Contract test GET /api/v1/appointments in backend/tests/contract/test_appointments_list.py
+- [x] T017 [P] Contract test POST /api/v1/appointments in backend/tests/contract/test_appointments_create.py
+- [x] T018 [P] Contract test GET /api/v1/doctors/{id}/availability in backend/tests/contract/test_doctor_availability.py
+- [x] T019 [P] Contract test PUT /api/v1/appointments/{id}/cancel in backend/tests/contract/test_appointments_cancel.py
 
 ### Messaging Contract Tests
 
-- [ ] T020 [P] Contract test GET /api/v1/messages in backend/tests/contract/test_messages_list.py
-- [ ] T021 [P] Contract test POST /api/v1/messages in backend/tests/contract/test_messages_create.py
-- [ ] T022 [P] Contract test WebSocket /ws/messages/{user_id} in backend/tests/contract/test_messages_websocket.py
+- [x] T020 [P] Contract test GET /api/v1/messages in backend/tests/contract/test_messages_list.py
+- [x] T021 [P] Contract test POST /api/v1/messages in backend/tests/contract/test_messages_create.py
+- [x] T022 [P] Contract test WebSocket /ws/messages/{user_id} in backend/tests/contract/test_messages_websocket.py
 
 ### Integration Tests
 
-- [ ] T023 [P] Integration test patient registration flow in backend/tests/integration/test_patient_registration.py
-- [ ] T024 [P] Integration test doctor authentication in backend/tests/integration/test_doctor_auth.py
-- [ ] T025 [P] Integration test medical record versioning in backend/tests/integration/test_medical_versioning.py
-- [ ] T026 [P] Integration test appointment booking flow in backend/tests/integration/test_appointment_booking.py
+- [x] T023 [P] Integration test patient registration flow in backend/tests/integration/test_patient_registration.py
+- [x] T024 [P] Integration test doctor authentication in backend/tests/integration/test_doctor_auth.py
+- [x] T025 [P] Integration test medical record versioning in backend/tests/integration/test_medical_versioning.py
+- [x] T026 [P] Integration test appointment booking flow in backend/tests/integration/test_appointment_booking.py
 
 ## Phase 3.3: Core Backend Implementation (ONLY after tests are failing)
 
 ### Database Models
 
-- [ ] T027 [P] User base model in backend/src/models/user.py
-- [ ] T028 [P] Patient model in backend/src/models/patient.py
-- [ ] T029 [P] Doctor model in backend/src/models/doctor.py
-- [ ] T030 [P] MedicalRecord with versioning in backend/src/models/medical_record.py
-- [ ] T031 [P] Appointment model in backend/src/models/appointment.py
-- [ ] T032 [P] Message model in backend/src/models/message.py
-- [ ] T033 [P] QuestionnaireProgress model in backend/src/models/questionnaire.py
+- [x] T027 [P] User base model in backend/src/models/user.py
+- [x] T028 [P] Patient model in backend/src/models/patient.py
+- [x] T029 [P] Doctor model in backend/src/models/doctor.py
+- [x] T030 [P] MedicalRecord with versioning in backend/src/models/medical_record.py
+- [x] T031 [P] Appointment model in backend/src/models/appointment.py
+- [x] T032 [P] Message model in backend/src/models/message.py
+- [x] T033 [P] QuestionnaireProgress model in backend/src/models/questionnaire.py
 
 ### Business Logic Services
 
-- [ ] T034 [P] AuthService (JWT, registration, login) in backend/src/services/auth_service.py
-- [ ] T035 [P] PatientService (profile, questionnaire) in backend/src/services/patient_service.py
-- [ ] T036 [P] MedicalRecordService (CRUD, versioning) in backend/src/services/medical_record_service.py
-- [ ] T037 [P] AppointmentService (booking, availability) in backend/src/services/appointment_service.py
-- [ ] T038 [P] MessageService (chat, notifications) in backend/src/services/message_service.py
+- [x] T034 [P] AuthService (JWT, registration, login) in backend/src/services/auth_service.py
+- [x] T035 [P] PatientService (profile, questionnaire) in backend/src/services/patient_service.py
+- [x] T036 [P] MedicalRecordService (CRUD, versioning) in backend/src/services/medical_record_service.py
+- [x] T037 [P] AppointmentService (booking, availability) in backend/src/services/appointment_service.py
+- [x] T038 [P] MessageService (chat, notifications) in backend/src/services/message_service.py
 
 ### API Endpoints
 
-- [ ] T039 Authentication endpoints (/auth/register, /auth/login, /auth/refresh, /auth/me)
-- [ ] T040 Medical records endpoints with versioning support
-- [ ] T041 Appointment booking and management endpoints
-- [ ] T042 Doctor availability management endpoints
-- [ ] T043 Messaging API endpoints
-- [ ] T044 WebSocket handler for real-time messaging
-- [ ] T045 Input validation and error handling across all endpoints
+- [x] T039 Authentication endpoints (/auth/register, /auth/login, /auth/refresh, /auth/me)
+- [x] T040 Medical records endpoints with versioning support
+- [x] T041 Appointment booking and management endpoints
+- [x] T042 Doctor availability management endpoints
+- [x] T043 Messaging API endpoints
+- [x] T044 WebSocket handler for real-time messaging
+- [x] T045 Input validation and error handling across all endpoints
 
 ## Phase 3.4: Frontend Implementation
 
