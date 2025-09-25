@@ -33,3 +33,15 @@ from src.schemas.medical_record import (  # noqa: F401
     MedicalRecordVersionsResponse,
     validate_medical_record_payload,
 )
+from src.schemas.message import (  # noqa: F401
+    AppointmentSummary,
+    Conversation,
+    ConversationsResponse,
+    Message,
+    MessageDetail,
+    MessagesResponse,
+    SendMessageRequest,
+    SuccessResponse,
+    UpdateMessageRequest,
+    UserSummary,
+)

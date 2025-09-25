@@ -6,9 +6,20 @@ OpenAPI specification. Tests are written in TDD fashion and should fail
 before implementation.
 """
 
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
-from uuid import uuid4
+
+from src.core.reference_data import (
+    APPOINTMENT_ID,
+    DOCTOR_USER_ID,
+    OTHER_PATIENT_USER_ID,
+    PATIENT_USER_ID,
+    URGENT_APPOINTMENT_ID,
+    VALID_DOCTOR_TOKEN,
+    VALID_PATIENT_TOKEN,
+)
 
 from main import app
 
@@ -21,29 +32,27 @@ class TestMessagesCreateEndpoint:
     @pytest.fixture
     def patient_auth_headers(self):
         """Authentication headers for patient user"""
-        # This will need to be implemented with actual JWT token generation
-        return {"Authorization": "Bearer patient_jwt_token_here"}
+        return {"Authorization": f"Bearer {VALID_PATIENT_TOKEN}"}
 
     @pytest.fixture
     def doctor_auth_headers(self):
         """Authentication headers for doctor user"""
-        # This will need to be implemented with actual JWT token generation
-        return {"Authorization": "Bearer doctor_jwt_token_here"}
+        return {"Authorization": f"Bearer {VALID_DOCTOR_TOKEN}"}
 
     @pytest.fixture
     def sample_doctor_id(self):
         """Sample doctor UUID for messaging"""
-        return str(uuid4())
+        return str(DOCTOR_USER_ID)
 
     @pytest.fixture
     def sample_patient_id(self):
         """Sample patient UUID for messaging"""
-        return str(uuid4())
+        return str(OTHER_PATIENT_USER_ID)
 
     @pytest.fixture
     def sample_appointment_id(self):
         """Sample appointment UUID for message context"""
-        return str(uuid4())
+        return str(APPOINTMENT_ID)
 
     @pytest.fixture
     def valid_message_data(self, sample_doctor_id, sample_appointment_id):
@@ -51,7 +60,10 @@ class TestMessagesCreateEndpoint:
         return {
             "recipient_id": sample_doctor_id,
             "appointment_id": sample_appointment_id,
-            "content": "I have been experiencing some side effects from the medication. Can we discuss alternative options?",
+            "content": (
+                "I have been experiencing some side effects from the medication. "
+                "Can we discuss alternative options?"
+            ),
         }
 
     @pytest.fixture
@@ -63,12 +75,16 @@ class TestMessagesCreateEndpoint:
         }
 
     @pytest.fixture
-    def doctor_message_data(self, sample_patient_id, sample_appointment_id):
+    def doctor_message_data(self, sample_appointment_id):
         """Doctor sending message to patient"""
         return {
-            "recipient_id": sample_patient_id,
+            "recipient_id": str(PATIENT_USER_ID),
             "appointment_id": sample_appointment_id,
-            "content": "Thank you for letting me know. Please describe the specific side effects you're experiencing. We can definitely explore other medication options during our next appointment.",
+            "content": (
+                "Thank you for letting me know. Please describe the specific side "
+                "effects you're experiencing. We can definitely explore other "
+                "medication options during our next appointment."
+            ),
         }
 
     def test_send_message_success_with_appointment(
@@ -356,7 +372,7 @@ class TestMessagesCreateEndpoint:
         Error case with appointment_id that doesn't involve the patient
         Expected: 403 Forbidden
         """
-        invalid_appointment_id = str(uuid4())
+        invalid_appointment_id = str(URGENT_APPOINTMENT_ID)
 
         message_data = {
             "recipient_id": sample_doctor_id,
@@ -451,7 +467,7 @@ class TestMessagesCreateEndpoint:
         response = client.post(
             "/api/v1/messages",
             headers=patient_auth_headers,
-            data="invalid json content",
+            content=b"invalid json content",
         )
 
         assert response.status_code == 400
@@ -478,7 +494,9 @@ class TestMessagesCreateEndpoint:
         headers = patient_auth_headers.copy()
         # Remove Content-Type to test default behavior
         response = client.post(
-            "/api/v1/messages", headers=headers, data=json.dumps(message_data)
+            "/api/v1/messages",
+            headers=headers,
+            content=json.dumps(message_data).encode(),
         )
 
         # FastAPI should handle this gracefully,

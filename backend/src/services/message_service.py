@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, desc, or_, select
+from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,17 @@ class MessageService:
 
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    def _message_load_options(self):
+        """Return common ORM load options for message queries."""
+
+        return (
+            selectinload(Message.sender).selectinload(User.patient),
+            selectinload(Message.sender).selectinload(User.doctor),
+            selectinload(Message.recipient).selectinload(User.patient),
+            selectinload(Message.recipient).selectinload(User.doctor),
+            selectinload(Message.appointment),
+        )
 
     async def send_message(
         self,
@@ -105,11 +116,7 @@ class MessageService:
         """
         stmt = (
             select(Message)
-            .options(
-                selectinload(Message.sender),
-                selectinload(Message.recipient),
-                selectinload(Message.appointment),
-            )
+            .options(*self._message_load_options())
             .where(Message.id == message_id)
         )
         result = await self.session.execute(stmt)
@@ -123,6 +130,110 @@ class MessageService:
             return None
 
         return message
+
+    async def list_user_messages(
+        self,
+        user_id: UUID,
+        *,
+        appointment_id: Optional[UUID] = None,
+        conversation_with: Optional[UUID] = None,
+        message_type: Optional[MessageType] = None,
+        unread_only: bool = False,
+        limit: int = 50,
+        offset: int = 0,
+        sort_order: str = "desc",
+    ) -> tuple[list[Message], int, int]:
+        """List messages for a user applying optional filters.
+
+        Returns a tuple containing the paginated messages, total count (without
+        pagination), and unread count for the user matching the filters.
+        """
+
+        conditions: list[Any] = [
+            or_(Message.sender_id == user_id, Message.recipient_id == user_id)
+        ]
+
+        if appointment_id:
+            conditions.append(Message.appointment_id == appointment_id)
+
+        if conversation_with:
+            conditions.append(
+                or_(
+                    and_(
+                        Message.sender_id == user_id,
+                        Message.recipient_id == conversation_with,
+                    ),
+                    and_(
+                        Message.sender_id == conversation_with,
+                        Message.recipient_id == user_id,
+                    ),
+                )
+            )
+
+        if message_type:
+            conditions.append(Message.message_type == message_type)
+
+        if unread_only:
+            conditions.append(Message.recipient_id == user_id)
+            conditions.append(Message.is_read.is_(False))
+
+        combined_condition = and_(*conditions)
+
+        order_clause = (
+            asc(Message.sent_at) if sort_order == "asc" else desc(Message.sent_at)
+        )
+
+        total_stmt = select(func.count()).select_from(Message).where(combined_condition)
+        total_result = await self.session.execute(total_stmt)
+        total_count = int(total_result.scalar_one())
+
+        unread_conditions: list[Any] = [
+            or_(Message.sender_id == user_id, Message.recipient_id == user_id),
+            Message.recipient_id == user_id,
+            Message.is_read.is_(False),
+        ]
+
+        if appointment_id:
+            unread_conditions.append(Message.appointment_id == appointment_id)
+
+        if conversation_with:
+            unread_conditions.append(
+                or_(
+                    and_(
+                        Message.sender_id == user_id,
+                        Message.recipient_id == conversation_with,
+                    ),
+                    and_(
+                        Message.sender_id == conversation_with,
+                        Message.recipient_id == user_id,
+                    ),
+                )
+            )
+
+        if message_type:
+            unread_conditions.append(Message.message_type == message_type)
+
+        unread_stmt = (
+            select(func.count()).select_from(Message).where(and_(*unread_conditions))
+        )
+        unread_result = await self.session.execute(unread_stmt)
+        unread_count = int(unread_result.scalar_one())
+
+        data_stmt = (
+            select(Message)
+            .options(*self._message_load_options())
+            .where(combined_condition)
+            .order_by(order_clause)
+            .offset(offset)
+        )
+
+        if limit:
+            data_stmt = data_stmt.limit(limit)
+
+        result = await self.session.execute(data_stmt)
+        messages = list(result.scalars().unique().all())
+
+        return messages, total_count, unread_count
 
     async def get_conversation(
         self,
@@ -170,10 +281,7 @@ class MessageService:
 
         stmt = (
             select(Message)
-            .options(
-                selectinload(Message.sender),
-                selectinload(Message.recipient),
-            )
+            .options(*self._message_load_options())
             .where(and_(*conditions))
             .order_by(desc(Message.sent_at))
             .offset(offset)
@@ -201,61 +309,45 @@ class MessageService:
         # Get all messages where user is sender or recipient
         stmt = (
             select(Message)
-            .options(
-                selectinload(Message.sender),
-                selectinload(Message.recipient),
-                selectinload(Message.appointment),
-            )
+            .options(*self._message_load_options())
             .where(or_(Message.sender_id == user_id, Message.recipient_id == user_id))
             .order_by(desc(Message.sent_at))
         )
 
         result = await self.session.execute(stmt)
-        all_messages = list(result.scalars().all())
+        all_messages = list(result.scalars().unique().all())
 
-        # Group messages by conversation partner
-        conversations = {}
+        conversations: Dict[UUID, Dict[str, Any]] = {}
         for message in all_messages:
-            partner_id = (
-                message.recipient_id
-                if message.sender_id == user_id
-                else message.sender_id
+            partner = (
+                message.recipient if message.sender_id == user_id else message.sender
             )
+            partner_id = partner.id
 
             if partner_id not in conversations:
-                partner = (
-                    message.recipient
-                    if message.sender_id == user_id
-                    else message.sender
-                )
                 conversations[partner_id] = {
-                    "partner_id": str(partner_id),
-                    "partner_email": partner.email,
-                    "partner_type": partner.user_type.value,
-                    "latest_message": {
-                        "id": str(message.id),
-                        "content": message.content_preview,
-                        "sent_at": message.sent_at.isoformat(),
-                        "is_read": message.is_read,
-                        "sender_id": str(message.sender_id),
-                        "message_type": message.message_type.value,
-                    },
+                    "partner": partner,
+                    "partner_id": partner_id,
+                    "latest_message": message,
+                    "appointment": message.appointment,
                     "unread_count": 0,
                     "total_messages": 0,
-                    "appointment_id": (
-                        str(message.appointment_id) if message.appointment_id else None
-                    ),
                 }
 
-            # Count messages and unread messages
-            conversations[partner_id]["total_messages"] += 1
-            if not message.is_read and message.recipient_id == user_id:
-                conversations[partner_id]["unread_count"] += 1
+            entry = conversations[partner_id]
+            entry["total_messages"] += 1
 
-        # Convert to list and sort by latest message timestamp
+            if not message.is_read and message.recipient_id == user_id:
+                entry["unread_count"] += 1
+
+            current_latest: Message = entry["latest_message"]
+            if message.sent_at > current_latest.sent_at:
+                entry["latest_message"] = message
+                entry["appointment"] = message.appointment
+
         conversation_list = list(conversations.values())
         conversation_list.sort(
-            key=lambda x: x["latest_message"]["sent_at"], reverse=True
+            key=lambda item: item["latest_message"].sent_at, reverse=True
         )
 
         return conversation_list[:limit] if limit else conversation_list
@@ -392,10 +484,7 @@ class MessageService:
 
         stmt = (
             select(Message)
-            .options(
-                selectinload(Message.sender),
-                selectinload(Message.recipient),
-            )
+            .options(*self._message_load_options())
             .where(and_(*conditions))
             .order_by(desc(Message.sent_at))
             .limit(limit)
@@ -468,8 +557,8 @@ class MessageService:
 
         if len(users) != 2:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="One or both users not found",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied",
             )
 
     async def _check_messaging_permissions(
@@ -500,8 +589,8 @@ class MessageService:
 
         if not sender_user or not recipient_user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="One or both users not found",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied",
             )
 
         # Check if one is patient and other is doctor
@@ -524,8 +613,8 @@ class MessageService:
 
             if not appointment:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Appointment not found",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied",
                 )
 
             if not (

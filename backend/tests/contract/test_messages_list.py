@@ -6,9 +6,15 @@ OpenAPI specification. Tests are written in TDD fashion and should fail
 before implementation.
 """
 
-import pytest
 from fastapi.testclient import TestClient
-from uuid import uuid4
+import pytest
+
+from src.core.reference_data import (
+    APPOINTMENT_ID,
+    DOCTOR_USER_ID,
+    VALID_DOCTOR_TOKEN,
+    VALID_PATIENT_TOKEN,
+)
 
 from main import app
 
@@ -21,24 +27,22 @@ class TestMessagesListEndpoint:
     @pytest.fixture
     def patient_auth_headers(self):
         """Authentication headers for patient user"""
-        # This will need to be implemented with actual JWT token generation
-        return {"Authorization": "Bearer patient_jwt_token_here"}
+        return {"Authorization": f"Bearer {VALID_PATIENT_TOKEN}"}
 
     @pytest.fixture
     def doctor_auth_headers(self):
         """Authentication headers for doctor user"""
-        # This will need to be implemented with actual JWT token generation
-        return {"Authorization": "Bearer doctor_jwt_token_here"}
+        return {"Authorization": f"Bearer {VALID_DOCTOR_TOKEN}"}
 
     @pytest.fixture
     def sample_appointment_id(self):
         """Sample appointment UUID for filtering"""
-        return str(uuid4())
+        return str(APPOINTMENT_ID)
 
     @pytest.fixture
     def sample_user_id(self):
         """Sample user UUID for conversation filtering"""
-        return str(uuid4())
+        return str(DOCTOR_USER_ID)
 
     def test_get_messages_success_default_params(self, patient_auth_headers):
         """

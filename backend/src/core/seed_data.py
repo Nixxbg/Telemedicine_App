@@ -40,6 +40,7 @@ from src.models.medical_record import (
     MedicalRecordVersion,
     RecordType,
 )
+from src.models.message import Message, MessageType
 from src.models.patient import Patient
 from src.models.user import User, UserType
 
@@ -71,6 +72,7 @@ async def seed_reference_data() -> None:
         await _seed_doctors(session)
         await _seed_medical_records(session)
         await _seed_appointments(session)
+        await _seed_messages(session)
         await session.commit()
 
 
@@ -234,3 +236,42 @@ async def _seed_appointments(session: AsyncSession) -> None:
         appointment.cost = Decimal("0.00")
 
     session.add_all(appointments)
+
+
+async def _seed_messages(session: AsyncSession) -> None:
+    """Insert sample messages for contract tests and demos."""
+
+    base_time = datetime(2025, 9, 14, 15, tzinfo=timezone.utc)
+
+    messages: Sequence[Message] = (
+        Message(
+            sender_id=PATIENT_USER_ID,
+            recipient_id=DOCTOR_USER_ID,
+            appointment_id=APPOINTMENT_ID,
+            content=("I've been feeling mild headaches after taking my medication."),
+            message_type=MessageType.TEXT,
+            sent_at=base_time,
+        ),
+        Message(
+            sender_id=DOCTOR_USER_ID,
+            recipient_id=PATIENT_USER_ID,
+            appointment_id=APPOINTMENT_ID,
+            content=(
+                "Thanks for the update. Please keep a log and bring it to our visit."
+            ),
+            message_type=MessageType.TEXT,
+            is_read=True,
+            sent_at=base_time + timedelta(minutes=45),
+            read_at=base_time + timedelta(hours=1),
+        ),
+        Message(
+            sender_id=DOCTOR_USER_ID,
+            recipient_id=OTHER_PATIENT_USER_ID,
+            appointment_id=URGENT_APPOINTMENT_ID,
+            content="Reminder: Please confirm if you still need the urgent slot.",
+            message_type=MessageType.SYSTEM_NOTIFICATION,
+            sent_at=base_time - timedelta(hours=3),
+        ),
+    )
+
+    session.add_all(messages)
