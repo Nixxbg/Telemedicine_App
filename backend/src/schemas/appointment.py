@@ -9,6 +9,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from src.core.validation import (
+    EnhancedValidationMixin,
+    MedicalDataValidationError,
+    sanitize_medical_text,
+    validate_appointment_time_slot,
+)
 from src.models.appointment import AppointmentStatus, AppointmentType
 
 UuidStr = Annotated[str, Field(min_length=1)]
@@ -52,7 +58,7 @@ class DoctorSummary(BaseModel):
     is_accepting_patients: bool | None = None
 
 
-class AppointmentCreateRequest(BaseModel):
+class AppointmentCreateRequest(EnhancedValidationMixin, BaseModel):
     """Schema for creating a new appointment."""
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
@@ -63,6 +69,34 @@ class AppointmentCreateRequest(BaseModel):
     appointment_type: str | None = None
     reason_for_visit: Optional[ReasonStr] = None
     preparation_notes: Optional[ReasonStr] = None
+
+    @field_validator("reason_for_visit")
+    @classmethod
+    def validate_reason_for_visit(cls, value: str | None) -> str | None:
+        """Sanitize reason for visit text."""
+        if value is None:
+            return value
+        sanitized = sanitize_medical_text(value)
+        if not sanitized.strip():
+            raise ValueError("Reason for visit cannot be empty")
+        return sanitized
+
+    @field_validator("preparation_notes")
+    @classmethod
+    def validate_preparation_notes(cls, value: str | None) -> str | None:
+        """Sanitize preparation notes text."""
+        if value is None:
+            return value
+        sanitized = sanitize_medical_text(value)
+        return sanitized if sanitized.strip() else None
+
+    def validate_appointment_timing(self) -> None:
+        """Validate appointment timing constraints."""
+        if self.scheduled_start and self.scheduled_end:
+            try:
+                validate_appointment_time_slot(self.scheduled_start, self.scheduled_end)
+            except MedicalDataValidationError as e:
+                raise ValueError(e.message) from e
 
 
 class AppointmentStatusUpdateRequest(BaseModel):

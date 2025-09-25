@@ -8,13 +8,19 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from src.core.validation import (
+    EnhancedValidationMixin,
+    MedicalDataValidationError,
+    sanitize_medical_text,
+    validate_medical_record_data_structure,
+)
 from src.models.medical_record import ChangeUserType, RecordType
 
 NonEmptyStr = Annotated[str, Field(min_length=1)]
 TitleStr = Annotated[str, Field(min_length=1, max_length=200)]
 
 
-class MedicalRecordCreateRequest(BaseModel):
+class MedicalRecordCreateRequest(EnhancedValidationMixin, BaseModel):
     """Schema for creating a medical record."""
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
@@ -24,13 +30,31 @@ class MedicalRecordCreateRequest(BaseModel):
     data: Annotated[dict[str, Any], Field(min_length=1)]
     change_reason: NonEmptyStr | None = Field(default=None, max_length=500)
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        """Sanitize and validate the medical record title."""
+        sanitized = sanitize_medical_text(value)
+        if len(sanitized) < 1:
+            raise ValueError("Title cannot be empty after sanitization")
+        return sanitized
+
     @field_validator("data")
     @classmethod
     def validate_data(cls, value: dict[str, Any]) -> dict[str, Any]:
-        """Ensure medical record data is not empty."""
+        """Ensure medical record data is not empty and properly structured."""
         if not value:
             raise ValueError("Medical record data cannot be empty")
-        return value
+
+        # Sanitize string values in the data
+        sanitized_data = {}
+        for key, val in value.items():
+            if isinstance(val, str):
+                sanitized_data[key] = sanitize_medical_text(val)
+            else:
+                sanitized_data[key] = val
+
+        return sanitized_data
 
     @field_validator("change_reason")
     @classmethod
@@ -38,12 +62,20 @@ class MedicalRecordCreateRequest(BaseModel):
         """Ensure change reason, when provided, is meaningful."""
         if value is None:
             return value
-        if not value.strip():
+        sanitized = sanitize_medical_text(value)
+        if not sanitized.strip():
             raise ValueError("Change reason cannot be blank")
-        return value.strip()
+        return sanitized.strip()
+
+    def validate_data_structure_and_content(self, patient_age: int) -> None:
+        """Validate medical record data structure and age-appropriateness."""
+        try:
+            validate_medical_record_data_structure(self.record_type.value, self.data)
+        except MedicalDataValidationError as e:
+            raise ValueError(e.message) from e
 
 
-class MedicalRecordUpdateRequest(BaseModel):
+class MedicalRecordUpdateRequest(EnhancedValidationMixin, BaseModel):
     """Schema for updating a medical record."""
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
@@ -52,13 +84,31 @@ class MedicalRecordUpdateRequest(BaseModel):
     data: Annotated[dict[str, Any], Field(min_length=1)]
     change_reason: NonEmptyStr | None = Field(default=None, max_length=500)
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        """Sanitize and validate the medical record title."""
+        sanitized = sanitize_medical_text(value)
+        if len(sanitized) < 1:
+            raise ValueError("Title cannot be empty after sanitization")
+        return sanitized
+
     @field_validator("data")
     @classmethod
     def validate_data(cls, value: dict[str, Any]) -> dict[str, Any]:
-        """Ensure updated medical record data is not empty."""
+        """Ensure updated medical record data is not empty and properly structured."""
         if not value:
             raise ValueError("Medical record data cannot be empty")
-        return value
+
+        # Sanitize string values in the data
+        sanitized_data = {}
+        for key, val in value.items():
+            if isinstance(val, str):
+                sanitized_data[key] = sanitize_medical_text(val)
+            else:
+                sanitized_data[key] = val
+
+        return sanitized_data
 
     @field_validator("change_reason")
     @classmethod
@@ -66,9 +116,19 @@ class MedicalRecordUpdateRequest(BaseModel):
         """Ensure change reason, when provided, is meaningful."""
         if value is None:
             return value
-        if not value.strip():
+        sanitized = sanitize_medical_text(value)
+        if not sanitized.strip():
             raise ValueError("Change reason cannot be blank")
-        return value.strip()
+        return sanitized.strip()
+
+    def validate_data_structure_and_content(
+        self, record_type: str, patient_age: int
+    ) -> None:
+        """Validate medical record data structure and age-appropriateness."""
+        try:
+            validate_medical_record_data_structure(record_type, self.data)
+        except MedicalDataValidationError as e:
+            raise ValueError(e.message) from e
 
 
 class MedicalRecordResponse(BaseModel):

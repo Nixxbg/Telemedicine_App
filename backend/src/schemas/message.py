@@ -6,8 +6,12 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from src.core.validation import (
+    EnhancedValidationMixin,
+    validate_message_content_safety,
+)
 from src.models.appointment import AppointmentStatus, AppointmentType
 from src.models.message import MessageType
 from src.models.user import UserType
@@ -15,7 +19,7 @@ from src.models.user import UserType
 NonEmptyContent = Annotated[str, Field(min_length=1, max_length=2000)]
 
 
-class SendMessageRequest(BaseModel):
+class SendMessageRequest(EnhancedValidationMixin, BaseModel):
     """Schema for sending a new message."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -23,6 +27,12 @@ class SendMessageRequest(BaseModel):
     recipient_id: UUID
     content: NonEmptyContent
     appointment_id: UUID | None = None
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        """Validate and sanitize message content for safety."""
+        return validate_message_content_safety(value)
 
 
 class UpdateMessageRequest(BaseModel):

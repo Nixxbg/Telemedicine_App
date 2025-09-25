@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from json import JSONDecodeError
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +20,6 @@ from src.schemas import (
     MedicalRecordValidationError,
     MedicalRecordVersionResponse,
     MedicalRecordVersionsResponse,
-    validate_medical_record_payload,
 )
 from src.services.auth_service import AuthService
 from src.services.medical_record_service import MedicalRecordService
@@ -222,7 +220,7 @@ async def list_medical_records(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_medical_record(
-    request: Request,
+    payload: MedicalRecordCreateRequest,
     current_user: User = Depends(get_current_user),
     service: MedicalRecordService = Depends(get_medical_record_service),
 ) -> MedicalRecordResponse:
@@ -235,39 +233,31 @@ async def create_medical_record(
             "Only patients can create medical records",
         )
 
+    # Enhanced validation: check age-appropriate data and structure
     try:
-        payload = await request.json()
-    except JSONDecodeError as error:
+        # Calculate patient's age for validation
+        patient = current_user.patient
+        if patient and patient.date_of_birth:
+            from src.core.validation import calculate_age_in_years
+
+            patient_age = calculate_age_in_years(patient.date_of_birth)
+            payload.validate_data_structure_and_content(patient_age)
+    except ValueError as error:
         raise http_error(
             status.HTTP_400_BAD_REQUEST,
             "validation_error",
-            "Request body must be valid JSON",
+            str(error),
         ) from error
-
-    if not isinstance(payload, dict):
-        raise http_error(
-            status.HTTP_400_BAD_REQUEST,
-            "validation_error",
-            "Request payload must be a JSON object",
-        )
-
-    try:
-        validated = cast(
-            MedicalRecordCreateRequest,
-            validate_medical_record_payload(payload, schema=MedicalRecordCreateRequest),
-        )
-    except MedicalRecordValidationError as error:
-        raise to_validation_exception(error) from error
 
     try:
         record = await service.create_medical_record(
             patient_id=current_user.id,
-            record_type=validated.record_type,
-            title=validated.title,
-            data=validated.data,
+            record_type=payload.record_type,
+            title=payload.title,
+            data=payload.data,
             created_by_user_id=current_user.id,
             created_by_user_type=current_user.user_type,
-            change_reason=validated.change_reason,
+            change_reason=payload.change_reason,
         )
     except HTTPException as exc:
         raise map_http_exception(exc, default_error="validation_error") from exc
@@ -288,7 +278,7 @@ async def create_medical_record(
 @router.put("/{record_id}", response_model=MedicalRecordResponse)
 async def update_medical_record(
     record_id: str,
-    request: Request,
+    payload: MedicalRecordUpdateRequest,
     current_user: User = Depends(get_current_user),
     service: MedicalRecordService = Depends(get_medical_record_service),
 ) -> MedicalRecordResponse:
@@ -303,38 +293,45 @@ async def update_medical_record(
             "Invalid record ID format",
         ) from error
 
+    # Get the existing record to determine record type for validation
+    existing_record = await service.get_medical_record(
+        record_uuid, current_user.id, current_user.user_type
+    )
+    if existing_record is None:
+        raise http_error(
+            status.HTTP_404_NOT_FOUND,
+            "not_found",
+            "Medical record not found or access denied",
+        )
+
+    # Enhanced validation: check age-appropriate data and structure
     try:
-        payload = await request.json()
-    except JSONDecodeError as error:
+        # Calculate patient's age for validation
+        patient = (
+            current_user.patient if current_user.user_type == UserType.PATIENT else None
+        )
+        if patient and patient.date_of_birth:
+            from src.core.validation import calculate_age_in_years
+
+            patient_age = calculate_age_in_years(patient.date_of_birth)
+            payload.validate_data_structure_and_content(
+                existing_record.record_type.value, patient_age
+            )
+    except ValueError as error:
         raise http_error(
             status.HTTP_400_BAD_REQUEST,
             "validation_error",
-            "Request body must be valid JSON",
+            str(error),
         ) from error
-
-    if not isinstance(payload, dict):
-        raise http_error(
-            status.HTTP_400_BAD_REQUEST,
-            "validation_error",
-            "Request payload must be a JSON object",
-        )
-
-    try:
-        validated = cast(
-            MedicalRecordUpdateRequest,
-            validate_medical_record_payload(payload, schema=MedicalRecordUpdateRequest),
-        )
-    except MedicalRecordValidationError as error:
-        raise to_validation_exception(error) from error
 
     try:
         await service.update_medical_record(
             record_id=record_uuid,
-            data=validated.data,
+            data=payload.data,
             updated_by_user_id=current_user.id,
             updated_by_user_type=current_user.user_type,
-            change_reason=validated.change_reason,
-            title=validated.title,
+            change_reason=payload.change_reason,
+            title=payload.title,
         )
     except HTTPException as exc:
         raise map_http_exception(exc, default_error="validation_error") from exc

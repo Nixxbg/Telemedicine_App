@@ -6,8 +6,20 @@ from datetime import date, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
+from src.core.validation import (
+    EnhancedValidationMixin,
+    calculate_age_in_years,
+    validate_emergency_contact,
+)
 from src.models.user import UserType
 
 UsernameStr = Annotated[
@@ -25,7 +37,7 @@ PhoneNumberStr = Annotated[
 ]
 
 
-class PatientRegistrationRequest(BaseModel):
+class PatientRegistrationRequest(EnhancedValidationMixin, BaseModel):
     """Schema for patient registration payload."""
 
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
@@ -43,10 +55,28 @@ class PatientRegistrationRequest(BaseModel):
     @field_validator("date_of_birth")
     @classmethod
     def validate_date_of_birth(cls, value: date) -> date:
-        """Ensure date of birth is not in the future."""
+        """Ensure date of birth is not in the future and patient is reasonable age."""
         if value > date.today():
             raise ValueError("date_of_birth cannot be in the future")
+
+        # Check if patient is too old (over 150 years)
+        age = calculate_age_in_years(value)
+        if age > 150:
+            raise ValueError("Invalid date of birth: age cannot exceed 150 years")
+
+        # Check if patient is too young (under 1 year for basic check)
+        if age < 0:
+            raise ValueError("Invalid date of birth")
+
         return value
+
+    @model_validator(mode="after")
+    def validate_emergency_contact_consistency(self) -> "PatientRegistrationRequest":
+        """Validate emergency contact information is consistent."""
+        validate_emergency_contact(
+            self.emergency_contact_name, self.emergency_contact_phone
+        )
+        return self
 
 
 class DoctorRegistrationRequest(BaseModel):
